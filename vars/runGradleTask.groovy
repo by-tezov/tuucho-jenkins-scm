@@ -1,7 +1,7 @@
 def call(
-    String task,
-    String gradleFolderPath = null,
-    Map params = null
+        String task,
+        String gradleFolderPath = null,
+        Map params = null
 ) {
     def paramString = params?.collect { key, value -> "-P${key}=${value}" }?.join(' ') ?: ''
     if (gradleFolderPath) {
