@@ -1,0 +1,7 @@
+- prepare for tuucho
+
+- do the all deploy product android / ios (stage - production)
+- add dsym upload for ios deploy-product
+- split / reduce and scale
+
++ TODO

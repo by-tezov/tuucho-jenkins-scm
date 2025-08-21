@@ -1,0 +1,372 @@
+static def getAvailableDevices() {
+    def command = 'xcrun simctl list devices'.execute()
+    def deviceListOutput = command.text
+
+    def deviceSections = [:]
+    def currentSectionName = ''
+    def currentSectionDevices = []
+    def includeSection = true
+
+    deviceListOutput.eachLine { line ->
+        if (line.startsWith('--')) {
+            if (includeSection && currentSectionName) {
+                deviceSections[currentSectionName] = currentSectionDevices
+            }
+            currentSectionName = line.replaceAll(/--/, '').trim()
+                    .toLowerCase().replaceAll(' ', '-')
+            currentSectionDevices = []
+            includeSection = !line.contains('Unavailable')
+        } else if (includeSection && line.trim()) {
+            currentSectionDevices << line.trim()
+        }
+    }
+    if (includeSection && currentSectionName) {
+        deviceSections[currentSectionName] = currentSectionDevices
+    }
+    return deviceSections
+}
+
+def getSimulatorId(String device, Map<String, String> devices = null) {
+    def _devices = devices ?: getAvailableDevices()
+    def deviceId = _devices.values().flatten()
+            .find { it.contains(device) }
+            ?.replaceAll(/.*\(([0-9A-Fa-f-]+)\).*/, '$1')
+    if (!deviceId) {
+        throw new GradleException("$device simulator not found!")
+    }
+    println("$device simulator id: $deviceId")
+    return deviceId
+}
+
+// primary task
+tasks.register('installPods', Exec) {
+    description = "Runs 'pod install' to install CocoaPods dependencies"
+    group = 'jenkins'
+    doFirst {
+        workingDir = project.findProperty('applicationDir')
+        commandLine 'pod', 'install'
+    }
+}
+
+tasks.register('setMarketingVersion', Exec) {
+    description = 'Set marketing version IPA'
+    group = 'jenkins'
+    doFirst {
+        def marketingVersion = project.findProperty('marketingVersion')
+        workingDir = project.findProperty('applicationDir')
+        if (marketingVersion == 'nil') {
+            commandLine 'echo', "setMarketingVersion:: Skipping task as marketingVersion is 'nil'"
+        }
+        else {
+            println("setMarketingVersion:: marketingVersion: $marketingVersion")
+            commandLine 'xcrun', 'agvtool', 'new-marketing-version', marketingVersion
+        }
+    }
+}
+
+tasks.register('setBundleVersion', Exec) {
+    description = 'Set bundle version IPA'
+    group = 'jenkins'
+    doFirst {
+        def bundleVersion = project.findProperty('bundleVersion')
+        println("setBundleVersion:: bundleVersion: $bundleVersion")
+
+        workingDir = project.findProperty('applicationDir')
+        commandLine 'xcrun', 'agvtool', 'new-version', bundleVersion
+    }
+}
+
+tasks.register('createArchiveApp', Exec) {
+    createArchiveApp.dependsOn installPods
+    createArchiveApp.dependsOn setMarketingVersion
+    createArchiveApp.dependsOn setBundleVersion
+
+    description = 'Create archive application'
+    group = 'jenkins'
+    doFirst {
+        def projectName = project.findProperty('target')
+        def schemeName = project.findProperty('scheme')
+        println("createArchiveApp:: project: $projectName, scheme: $schemeName")
+
+        workingDir = project.findProperty('applicationDir')
+        commandLine 'xcodebuild',
+                '-workspace', "${projectName}.xcworkspace",
+                '-scheme', schemeName,
+                '-sdk', 'iphoneos',
+                '-destination', 'name=Any iOS Device',
+                '-derivedDataPath', "$workingDir/build",
+                '-archivePath', "$workingDir/archive/archive.xcarchive",
+                'archive'
+    }
+}
+
+tasks.register('exportArchiveApp', Exec) {
+    exportArchiveApp.dependsOn createArchiveApp
+
+    description = 'Export archive application'
+    group = 'jenkins'
+    doFirst {
+        def projectName = project.findProperty('target')
+        def schemeName = project.findProperty('scheme')
+        println("exportArchiveApp:: project: $projectName, scheme: $schemeName")
+
+        workingDir = project.findProperty('applicationDir')
+        commandLine 'xcodebuild',
+                '-exportArchive',
+                '-archivePath', "$workingDir/archive/archive.xcarchive",
+                '-exportPath', "$workingDir/archive",
+                '-exportOptionsPlist', "$workingDir/archive/options.plist"
+    }
+}
+
+tasks.register('createSimulatorApp', Exec) {
+    createSimulatorApp.dependsOn installPods
+
+    description = 'Create simulator application'
+    group = 'jenkins'
+    doFirst {
+        def projectName = project.findProperty('target')
+        def schemeName = project.findProperty('scheme')
+        def device = project.findProperty('device')
+        println("createSimulatorApp:: project: $projectName, scheme: $schemeName, device:$device")
+
+        def deviceId = getSimulatorId(device)
+
+        workingDir = project.findProperty('applicationDir')
+        commandLine 'xcodebuild',
+                '-workspace', "${projectName}.xcworkspace",
+                '-scheme', schemeName,
+                '-destination', "id=${deviceId}",
+                '-derivedDataPath', "$workingDir/build",
+                'build'
+    }
+}
+
+tasks.register('buildForTest', Exec) {
+    buildForTest.dependsOn installPods
+
+    description = 'Builds for unit test'
+    group = 'jenkins'
+    doFirst {
+        def projectName = project.findProperty('target')
+        def schemeName = project.findProperty('scheme')
+        def device = project.findProperty('device')
+        println("buildForTest:: project: $projectName, scheme: $schemeName, device:$device")
+
+        def deviceId = getSimulatorId(device)
+
+        workingDir = project.findProperty('applicationDir')
+        commandLine 'xcodebuild',
+                'ARCHS=arm64', 'ONLY_ACTIVE_ARCH=YES', 'EXCLUDED_ARCHS=x86_64',
+                '-workspace', "${projectName}.xcworkspace",
+                '-scheme', schemeName,
+                '-destination', "id=${deviceId}",
+                '-derivedDataPath', "$workingDir/build",
+                'build-for-testing'
+    }
+}
+
+tasks.register('testWithoutBuilding', Exec) {
+    description = 'Unit testing'
+    group = 'jenkins'
+    doFirst {
+        def projectName = project.findProperty('target')
+        def schemeName = project.findProperty('scheme')
+        def device = project.findProperty('device')
+        println("testWithoutBuilding:: project: $projectName, scheme: $schemeName, device:$device")
+
+        def deviceId = getSimulatorId(device)
+
+        workingDir = project.findProperty('applicationDir')
+        commandLine 'sh', '-c', """xcodebuild \
+            ARCHS=arm64 ONLY_ACTIVE_ARCH=YES EXCLUDED_ARCHS=x86_64 \
+            -workspace "${projectName}.xcworkspace" \
+            -scheme ${schemeName} \
+            -destination "id=${deviceId}" \
+            -derivedDataPath "$workingDir/build" \
+            test-without-building | xcpretty --report html --output "$workingDir/build/reports/tests/index.html"
+        """
+    }
+}
+
+tasks.register('testCoverageGenerateReport') {
+    description = 'Coverage report'
+    group = 'jenkins'
+    doFirst {
+        def projectName = project.findProperty('target')
+        def schemeName = project.findProperty('scheme')
+
+        println("testCoverageGenerateReport:: project: $projectName, scheme: $schemeName")
+
+        def applicationDir = project.findProperty('applicationDir')
+        def slatherFile = new File(applicationDir, '.slather.yml')
+        if (slatherFile.exists()) {
+            slatherFile.text =
+                    'build_directory: build\n' +
+                            'output_directory: build/reports/slather\n' +
+                            $slatherFile.text
+        } else {
+            // try to build it from .xcovignore
+            def xcovignoreFile = new File(applicationDir, '.xcovignore')
+            if (!xcovignoreFile.exists()) {
+                throw new GradleException(".xcovignore file not found at $applicationDir'")
+            }
+            def ignoredList = xcovignoreFile.readLines().findAll { it.trim() && !it.startsWith('#') && !it.endsWith('Pods') }
+            def convertedIgnored = ignoredList.collect { line ->
+                line = line.trim().substring(2)
+                if (line.endsWith('.swift')) {
+                    if (line.startsWith('.*')) {
+                        return "'${line.substring(1)}'"
+                    }
+                    return "'*${line}'"
+                } else if (line.contains('/')) {
+                    return "'${line}*'"
+                } else {
+                    return null
+                }
+            }
+            slatherFile.text =
+                    'build_directory: build\n' +
+                            'output_directory: build/reports/slather\n' +
+                            "source_files: '$projectName/*'\n" +
+                            'ignore:\n' +
+                            convertedIgnored.findAll { it != null }.collect { " - ${it}" }.join('\n')
+        }
+
+        exec {
+            workingDir = applicationDir
+            commandLine 'slather', 'coverage', '--html',
+                '--workspace', "${projectName}.xcworkspace",
+                '--scheme', schemeName,
+                "${projectName}.xcodeproj"
+        }
+    }
+}
+
+
+// helper task
+tasks.register('assembleDevForTest') {
+    description = 'assemble scheme dev for unit test'
+    group = 'jenkins'
+    doFirst {
+        def applicationDir = project.findProperty('applicationDir')
+        def device = project.findProperty('device')
+        println("assembleDevForTest:: applicationDir: $applicationDir, device:$device")
+
+        exec {
+            workingDir = projectDir
+            commandLine './gradlew',
+                    'buildForTest',
+                    "-PapplicationDir=${applicationDir}",
+                    '-Ptarget=tezov_ios',
+                    '-Pscheme=tezov_ios-dev',
+                    "-Pdevice=${device}",
+                    '--stacktrace'
+        }
+    }
+}
+
+tasks.register('allTests') {
+    description = 'run all unit test'
+    group = 'jenkins'
+    doFirst {
+        def applicationDir = project.findProperty('applicationDir')
+        def device = project.findProperty('device')
+        println("allTests:: applicationDir: $applicationDir, device:$device")
+
+        exec {
+            workingDir = projectDir
+            commandLine './gradlew',
+                    'testWithoutBuilding',
+                    "-PapplicationDir=${applicationDir}",
+                    '-Ptarget=tezov_ios',
+                    '-Pscheme=tezov_ios-dev',
+                    "-Pdevice=${device}",
+                    '--stacktrace'
+        }
+    }
+}
+
+tasks.register('slatherFullReport') {
+    description = 'generate coverage report'
+    group = 'jenkins'
+    doFirst {
+        def applicationDir = project.findProperty('applicationDir')
+        println("slatherFullReport:: applicationDir: $applicationDir")
+
+        exec {
+            workingDir = projectDir
+            commandLine './gradlew',
+                    'testCoverageGenerateReport',
+                    "-PapplicationDir=${applicationDir}",
+                    '-Ptarget=tezov_ios',
+                    '-Pscheme=tezov_ios-dev',
+                    '--stacktrace'
+        }
+    }
+}
+
+tasks.register('assembleDebug') {
+    description = 'assemble scheme debug for e2e test'
+    group = 'jenkins'
+    doFirst {
+        def applicationDir = project.findProperty('applicationDir')
+        def device = project.findProperty('device')
+        println("assembleDebug:: applicationDir: $applicationDir, device:$device")
+
+        exec {
+            workingDir = projectDir
+            commandLine './gradlew',
+                    'createSimulatorApp',
+                    "-PapplicationDir=${applicationDir}",
+                    '-Ptarget=tezov_ios',
+                    '-Pscheme=tezov_ios-debug',
+                    "-Pdevice=${device}",
+                    '--stacktrace'
+        }
+    }
+}
+
+tasks.register('assembleRealRelease') {
+    description = 'assemble scheme release for e2e test'
+    group = 'jenkins'
+    doFirst {
+        def applicationDir = project.findProperty('applicationDir')
+        def device = project.findProperty('device')
+        println("assembleRealRelease:: applicationDir: $applicationDir, device:$device")
+
+        exec {
+            workingDir = projectDir
+            commandLine './gradlew',
+                    'createSimulatorApp',
+                    "-PapplicationDir=${applicationDir}",
+                    '-Ptarget=tezov_ios',
+                    '-Pscheme=tezov_ios-prod',
+                    "-Pdevice=${device}",
+                    '--stacktrace'
+        }
+    }
+}
+
+tasks.register('exportArchiveDebugApp') {
+    description = 'export archive debug for qa'
+    group = 'jenkins'
+    doFirst {
+        def applicationDir = project.findProperty('applicationDir')
+        def marketingVersion = project.findProperty('marketingVersion')
+        def bundleVersion = project.findProperty('bundleVersion')
+        println("exportArchiveApp:: applicationDir: $applicationDir, marketingVersion: $marketingVersion, bundleVersion: $bundleVersion")
+
+        exec {
+            workingDir = projectDir
+            commandLine './gradlew',
+                    'exportArchiveApp',
+                    "-PapplicationDir=${applicationDir}",
+                    '-Ptarget=tezov_ios',
+                    '-Pscheme=tezov_ios-debug',
+                    "-PmarketingVersion=${marketingVersion}",
+                    "-PbundleVersion=${bundleVersion}",
+                    '--stacktrace'
+        }
+    }
+}
