@@ -55,7 +55,7 @@ pipeline {
                             content[Key.type] = Type.push.value
                             content[Key.repositoryName] = jsonPayload.repository.name
                             addPlatformBadge(constant.repositoryToPlatform[content[Key.repositoryName]])
-                            content[Key.sourceBranch] = jsonPayload.ref
+                            content[Key.sourceBranch] = jsonPayload.ref.replace('refs/heads/', '')
                             content[Key.isSourceBranchDeleted] = jsonPayload.deleted
 
                             if (!content[Key.isSourceBranchDeleted]) {
@@ -81,7 +81,7 @@ pipeline {
                                         pullRequest[KeyPullRequest.number] = responseContent.number
                                         pullRequest[KeyPullRequest.state] = responseContent.state
                                         pullRequest[KeyPullRequest.isDraft] = responseContent.draft
-                                        pullRequest[KeyPullRequest.labels] = jsonPayload.pull_request.labels.collect { it.name }
+                                        pullRequest[KeyPullRequest.labels] = responseContent.labels.collect { it.name }
                                         pullRequests.add(pullRequest)
                                     }
                                     if (pullRequests.size() == 1) {

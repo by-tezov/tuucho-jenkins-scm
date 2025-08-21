@@ -1,11 +1,11 @@
 def call(
         String task,
-        String gradleFolderPath = null,
+        String folderPath = null,
         Map params = null
 ) {
     def paramString = params?.collect { key, value -> "-P${key}=${value}" }?.join(' ') ?: ''
-    if (gradleFolderPath) {
-        dir(gradleFolderPath) {
+    if (folderPath) {
+        dir(folderPath) {
             sh "./gradlew ${task} ${paramString} --no-daemon"
         }
     } else {

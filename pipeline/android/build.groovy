@@ -9,8 +9,8 @@ pipeline {
     }
 
     parameters {
-        string(name: 'SOURCE_BRANCH', defaultValue: 'master', description: 'Source branch to build')
-        string(name: 'TARGET_BRANCH', defaultValue: 'master', description: 'Target branch to merge (merge is done only locally, not on remote)')
+        string(name: 'SOURCE_BRANCH', defaultValue: 'chore/integrate-cicd', description: 'Source branch to build')
+        string(name: 'TARGET_BRANCH', defaultValue: 'release/0.0.1-alpha9', description: 'Target branch to merge (merge is done only locally, not on remote)')
         choice(name: 'BUILD_TYPE', choices: ['debug', 'release'], description: 'Build type')
         choice(name: 'FLAVOR_TYPE', choices: ['mock', 'prod'], description: 'Flavor type')
         choice(name: 'LANGUAGE', choices: ['en', 'fr'], description: 'Language to use for e2e test')
@@ -25,7 +25,6 @@ pipeline {
     environment {
         AGENT = 'android'
         PIPELINE_NAME = env.JOB_NAME.replace("${env.AGENT}/", '')
-        PROJECT_FOLDER_PATH = getProjectFolderPath(env.AGENT, env.PIPELINE_NAME, env.BUILD_NUMBER)
     }
 
     options {
@@ -43,8 +42,7 @@ pipeline {
                             currentBuild.displayName = "#${env.BUILD_NUMBER}-${params.SOURCE_BRANCH}"
                             if (params.COMMIT_AUTHOR != '' && params.COMMIT_MESSAGE != '') {
                                 currentBuild.description = "${params.COMMIT_AUTHOR} - ${params.COMMIT_MESSAGE}"
-                            }
-                            else {
+                            } else {
                                 currentBuild.description = ''
                             }
                         }
@@ -55,9 +53,7 @@ pipeline {
                         timeout(time: 1, unit: 'MINUTES')
                     }
                     steps {
-                        script {
-                            cleanWorkspaces(env.AGENT_AN_BUILDER_PATH, env.JOB_NAME)
-                        }
+                        script { cleanWorkspaces() }
                     }
                 }
             }
@@ -69,68 +65,41 @@ pipeline {
             }
             steps {
                 dir('project') {
-                    git branch: params.SOURCE_BRANCH, credentialsId: "${env.GIT_CREDENTIAL_ID}", url: env.GIT_TUUCHO //TODO merge on target
-                }
-            }
-        }
-
-        stage('config') {
-            parallel {
-                stage('properties') {
-                    options {
-                        timeout(time: 1, unit: 'MINUTES')
-                    }
-                    steps {
-                        script {
-                            log.info 'properties'
-                            // TODO set flavor
-                            // other
-                        }
-                    }
-                }
-                stage('marketing version') {
-                    steps {
-                        script {
-                            dir('project') {
-                                log.info 'marketing version'
-                                // def manifestPath = "./app/src/main/AndroidManifest.xml"
-                                // def manifestContent = readFile(manifestPath)
-                                // TODO
-                            }
-                        }
-                    }
+                    git branch: params.SOURCE_BRANCH, credentialsId: "${env.GIT_CREDENTIAL_ID}", url: env.GIT_TUUCHO
+                    //TODO merge on target
                 }
             }
         }
 
         stage('unit test') {
             options {
-                timeout(time: 5, unit: 'MINUTES')
+                timeout(time: 15, unit: 'MINUTES')
             }
             steps {
                 script {
-                    // TODO set flavor on mock
-                    runGradleTask('testDebugUnitTest', 'project')
-                    if(currentBuild.description != '') {
+                    replaceFlavorType(constant.flavorType.mock)
+                    runGradleTask('allUnitTestsDebug', 'project')
+                    if (currentBuild.description != '') {
                         currentBuild.description += "<br>"
                     }
-                    currentBuild.description += """<a href="http://localhost/jenkins/report/${env.AGENT}/${env.PIPELINE_NAME}/_${env.BUILD_NUMBER}/project/${env.REPORT_ANDROID_UNIT_TEST_FILE}" target="_blank">Tests report</a>"""
+                    currentBuild.description += """<a href="http://localhost/jenkins/report/${env.JOB_NAME}/_${env.BUILD_NUMBER}/project/${env.REPORT_TUUCHO_UNIT_TEST_FILE}" target="_blank">Tests report</a>"""
                 }
             }
         }
 
-//        stage('coverage') {
-//            options {
-//                timeout(time: 2, unit: 'MINUTES')
-//            }
-//            steps {
-//                script {
-//                    runGradleTask('koverHtmlReport', 'project')
-//                    currentBuild.description += """<br><a href="http://localhost/jenkins/report/${env.AGENT}/${env.PIPELINE_NAME}/_${env.BUILD_NUMBER}/project/${env.REPORT_ANDROID_COVERAGE_FILE}" target="_blank">Coverage report</a>"""
-//                }
-//            }
-//        }
+        stage('coverage') {
+            options {
+                timeout(time: 2, unit: 'MINUTES')
+            }
+            steps {
+                script {
+                    runGradleTask('koverHtmlReport', 'project')
+                    currentBuild.description += """<br><a href="http://localhost/jenkins/report/${env.JOB_NAME}/_${env.BUILD_NUMBER}/project/${env.REPORT_TUUCHO_COVERAGE_FILE}" target="_blank">Coverage report</a>"""
+                }
+            }
+        }
 
+        //TODO
 //        stage('build for e2e test') {
 //            options {
 //                timeout(time: 20, unit: 'MINUTES')
@@ -148,7 +117,7 @@ pipeline {
 //                            default: error("Unknown environment: ${params.ENVIRONMENT}")
 //                        }
 //                    }()
-                      // TODO set flavor on env flavor
+//TODO replace flavor with params floavor
 //                    runGradleTask(taskName, 'project')
 //                }
 //            }
