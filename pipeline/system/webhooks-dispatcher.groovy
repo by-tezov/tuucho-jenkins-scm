@@ -1,11 +1,10 @@
-@Library('library@master') _
+@Library('library@chore/migrate-to-tuucho') _
 
 import com.tezov.jenkins.webhook.WebhookContent
 import com.tezov.jenkins.webhook.enums.Key
 import com.tezov.jenkins.webhook.enums.KeyPullRequest
 import com.tezov.jenkins.webhook.enums.PullRequestAction
 import com.tezov.jenkins.webhook.enums.Type
-import com.tezov.jenkins.webhook.enums.RepositoryName
 
 WebhookContent content = new WebhookContent()
 Map<String, String> option = [:]
@@ -16,12 +15,10 @@ pipeline {
         GenericTrigger(
                 genericVariables: [
                         [key: 'payload', value: '$', regexpFilter: ''],
-                        [key: 'payload_pullRequestAction', value: '$.object_attributes.action', defaultValue: 'not_a_pull_request' , regexpFilter: ''],
-                        [key: 'payload_pullRequestLabelChanged', value: '$.changes.labels', defaultValue: 'no_labels_changed' , regexpFilter: '']
+                        [key: 'payload_pullRequestAction', value: '$.action', defaultValue: 'not_a_pull_request', regexpFilter: '']
                 ],
                 genericHeaderVariables: [
-                        [key: 'X-Gitlab-Event', regexpFilter: ''],
-                        [key: 'X-Gitlab-Token', regexpFilter: '']
+                        [key: 'X-GitHub-Event', regexpFilter: '']
                 ],
                 causeString: '',
                 token: 'WEBHOOKS-DISPATCHER',
@@ -30,17 +27,13 @@ pipeline {
                 printPostContent: false,
                 printContributedVariables: false,
                 shouldNotFlatten: false,
-                // filter event to avoid duplicate job launch
-                // - on action review_requested we trigger as many as there are user, so we accept only open/reopen and anything not a pull request
-                // - on push, an update action on pull request is sent, we ignore it and let pass only the push event but we accept update with labels changed
-                regexpFilterText: '$payload_pullRequestAction $payload_pullRequestLabelChanged',
-                regexpFilterExpression: '^(((open|reopen|not_a_pull_request) .*))|(update (?!no_labels_changed$).+)$'
+                regexpFilterText: '$payload_pullRequestAction',
+                regexpFilterExpression: '^(opened|reopened|labeled|not_a_pull_request)$'
         )
     }
 
     environment {
-        WEBHOOK_SECRET = credentials('webhook-secret')
-        GIT_API_TOKEN = credentials('git-api-token')
+        GITHUB_API_TOKEN = credentials('github-api-token')
     }
 
     options {
@@ -48,71 +41,52 @@ pipeline {
     }
 
     stages {
-        stage('check token') {
-            steps {
-                script {
-                    if (x_gitlab_token != WEBHOOK_SECRET) {
-                        error("x_gitlab_token does not match WEBHOOK_SECRET")
-                    } else {
-                        log.info "x_gitlab_token matches WEBHOOK_SECRET"
-                    }
-                }
-            }
-        }
-
         stage('parse event payload') {
             parallel {
-               stage('push') {
+                stage('push') {
                     when {
-                        expression { x_gitlab_event == Type.push.value }
+                        expression { x_github_event == Type.push.value }
                     }
                     steps {
                         script {
-                            def jsonPayload = readJSON text: payload
                             addBadge(icon: 'symbol-git-pull-request-outline plugin-ionicons-api', text: 'push')
 
+                            def jsonPayload = readJSON text: payload
                             content[Key.type] = Type.push.value
                             content[Key.repositoryName] = jsonPayload.repository.name
-
-                            addPlatformBadge(RepositoryName.from(content[Key.repositoryName]).name())
-
-                            content[Key.sourceBranch] = jsonPayload.ref.replace('refs/heads/', '')
+                            addPlatformBadge(constant.repositoryToPlatform[content[Key.repositoryName]])
+                            content[Key.sourceBranch] = jsonPayload.ref
                             content[Key.isSourceBranchDeleted] = jsonPayload.deleted
 
                             if (!content[Key.isSourceBranchDeleted]) {
-                                content[Key.author] = jsonPayload.commits[0].author.name
-                                content[Key.commitMessage] = jsonPayload.commits[0].message
-
+                                content[Key.author] = jsonPayload.head_commit.author.name
+                                content[Key.commitMessage] = jsonPayload.head_commit.message
                                 // retrieve pull requests associated to source branch
-                                def encodedProjectPath = URLEncoder.encode(jsonPayload.project.path_with_namespace, "UTF-8")
-                                def encodedSourceBranch = URLEncoder.encode(content[Key.sourceBranch], "UTF-8")
                                 def response = httpRequest(
-                                        url: "http://gitlab:80/gitlab/api/v4/projects/${encodedProjectPath}/merge_requests?state=opened&source_branch=${encodedSourceBranch}",
-                                        timeout : env.GIT_API_REQUEST_TIMEOUT.toInteger(),
+                                        url: "https://api.github.com/repos/${jsonPayload.repository.full_name}/pulls?head=${jsonPayload.repository.organization}:${content[Key.sourceBranch]}",
+                                        timeout: env.GITHUB_API_REQUEST_TIMEOUT.toInteger(),
                                         httpMode: 'GET',
                                         customHeaders: [
                                                 [name: 'Accept', value: "application/json"],
-                                                [name: 'PRIVATE-TOKEN', value: "${GIT_API_TOKEN}"],
+                                                [name: 'Authorization', value: "Bearer ${GITHUB_API_TOKEN}"]
                                         ],
                                         validResponseCodes: '200'
                                 )
-
                                 try {
                                     def jsonResponseContent = readJSON text: response.content
                                     def pullRequests = []
                                     jsonResponseContent.each { responseContent ->
                                         def pullRequest = [:]
-                                        pullRequest[KeyPullRequest.targetBranch] = responseContent.target_branch
-                                        pullRequest[KeyPullRequest.number] = responseContent.id
+                                        pullRequest[KeyPullRequest.targetBranch] = responseContent.base.ref
+                                        pullRequest[KeyPullRequest.number] = responseContent.number
                                         pullRequest[KeyPullRequest.state] = responseContent.state
                                         pullRequest[KeyPullRequest.isDraft] = responseContent.draft
-                                        pullRequest[KeyPullRequest.labels] = responseContent.labels
+                                        pullRequest[KeyPullRequest.labels] = jsonPayload.pull_request.labels.collect { it.name }
                                         pullRequests.add(pullRequest)
                                     }
-                                    if(pullRequests.size() == 1) {
+                                    if (pullRequests.size() == 1) {
                                         content[Key.pullRequest] = pullRequests[0]
-                                    }
-                                    else if(pullRequests.size() > 1) {
+                                    } else if (pullRequests.size() > 1) {
                                         content[Key.pullRequest] = pullRequests
                                     }
                                 }
@@ -123,55 +97,69 @@ pipeline {
                             }
                             log.info "content: ${content}"
 
-                            if(content[Key.isSourceBranchDeleted]) {
+                            if (content[Key.isSourceBranchDeleted]) {
                                 currentBuild.displayName = "#${env.BUILD_NUMBER}-${content[Key.sourceBranch]}"
                                 currentBuild.description = "${jsonPayload.pusher.name} branch deleted"
-                            }
-                            else {
+                            } else {
                                 currentBuild.displayName = "#${env.BUILD_NUMBER}-${content[Key.sourceBranch]}"
                                 currentBuild.description = "${content[Key.author]}\n${content[Key.commitMessage]}"
                             }
                         }
                     }
-               }
-               stage('pull request') {
+                }
+                stage('pull request') {
                     when {
-                        expression { x_gitlab_event == Type.pull.value }
+                        expression { x_github_event == Type.pull.value }
                     }
                     steps {
                         script {
-                            def jsonPayload = readJSON text: payload
                             addBadge(icon: 'symbol-push-outline plugin-ionicons-api', text: 'pull request')
 
+                            def jsonPayload = readJSON text: payload
                             content[Key.type] = Type.pull.value
                             content[Key.repositoryName] = jsonPayload.repository.name
-
-                            addPlatformBadge(RepositoryName.from(content[Key.repositoryName]).name())
-
-                            content[Key.sourceBranch] = jsonPayload.object_attributes.source_branch
+                            addPlatformBadge(constant.repositoryToPlatform[content[Key.repositoryName]])
+                            content[Key.sourceBranch] = jsonPayload.pull_request.head.ref
 
                             def pullRequest = [:]
-                            pullRequest[KeyPullRequest.action] = jsonPayload.object_attributes.action
-                            pullRequest[KeyPullRequest.targetBranch] = jsonPayload.object_attributes.target_branch
-                            pullRequest[KeyPullRequest.number] = jsonPayload.object_attributes.id
-                            pullRequest[KeyPullRequest.state] = jsonPayload.object_attributes.state
-                            pullRequest[KeyPullRequest.isDraft] = jsonPayload.object_attributes.draft
-                            if(jsonPayload.changes.labels?.current) {
-                                if(pullRequest[KeyPullRequest.action] == PullRequestAction.update.value) {
-                                    pullRequest[KeyPullRequest.action] = PullRequestAction.labeled.value
-                                    def previousLabels = jsonPayload.changes.labels?.previous?.collect { it.title } ?: []
-                                    pullRequest[KeyPullRequest.labelsAdded] = jsonPayload.changes.labels.current
-                                            .findAll { !(it.title in previousLabels) }
-                                            .collect { it.title }
+                            pullRequest[KeyPullRequest.action] = jsonPayload.action
+                            pullRequest[KeyPullRequest.targetBranch] = jsonPayload.pull_request.base.ref
+                            pullRequest[KeyPullRequest.number] = jsonPayload.number
+                            pullRequest[KeyPullRequest.state] = jsonPayload.pull_request.state
+                            pullRequest[KeyPullRequest.isDraft] = jsonPayload.pull_request.draft
+                            pullRequest[KeyPullRequest.labels] = jsonPayload.pull_request.labels.collect { it.name }
+                            if (jsonPayload.label) {
+                                def labelAdded = jsonPayload.label.name
+                                pullRequest[KeyPullRequest.labelAdded] = labelAdded
+                                def labels = pullRequest[KeyPullRequest.labels]
+                                if (!labels.contains(labelAdded)) {
+                                    labels << labelAdded
+                                    pullRequest[KeyPullRequest.labels] = labels
                                 }
-                                pullRequest[KeyPullRequest.labels] = jsonPayload.changes.labels.current
-                                        .collect { it.title } as Set
                             }
                             content[Key.pullRequest] = pullRequest
-                            content[Key.commitMessage] = jsonPayload.object_attributes.last_commit.message
-                            content[Key.author] = jsonPayload.object_attributes.last_commit.author.name
+                            // retrieve last source branch commit
+                            def response = httpRequest(
+                                    url: "https://api.github.com/repos/${jsonPayload.repository.full_name}/commits?sha=${jsonPayload.pull_request.head.sha}&per_page=1&page=1",
+                                    timeout: env.GITHUB_API_REQUEST_TIMEOUT.toInteger(),
+                                    httpMode: 'GET',
+                                    customHeaders: [
+                                            [name: 'Accept', value: "application/json"],
+                                            [name: 'Authorization', value: "Bearer ${GITHUB_API_TOKEN}"]
+                                    ],
+                                    validResponseCodes: '200'
+                            )
+                            try {
+                                def jsonResponseContent = readJSON text: response.content
+                                def headCommit = jsonResponseContent[0]
+                                content[Key.commitMessage] = headCommit.commit.message
+                                content[Key.author] = headCommit.commit.author.name
+                            }
+                            catch (error) {
+                                log.error error
+                                log.info response.content
+                            }
                             log.info "content: ${content}"
-
                             currentBuild.displayName = "#${env.BUILD_NUMBER}-${content[Key.sourceBranch]}"
                             currentBuild.description = "${content[Key.author]} - ${content[Key.commitMessage]}"
                         }
@@ -223,10 +211,12 @@ pipeline {
                                     or {
                                         and {
                                             exact(Key.type, Type.push)
+                                            exact(KeyPullRequest.isDraft, false)
                                             expression(Key.pullRequest) { it != null }
                                         }
                                         and {
                                             exact(Key.type, Type.pull)
+                                            exact(KeyPullRequest.isDraft, false)
                                             or {
                                                 exact(KeyPullRequest.action, PullRequestAction.opened)
                                                 exact(KeyPullRequest.action, PullRequestAction.reopened)
@@ -235,7 +225,7 @@ pipeline {
                                         and {
                                             exact(Key.type, Type.pull)
                                             exact(KeyPullRequest.action, PullRequestAction.labeled)
-                                            contains(KeyPullRequest.labelsAdded, 'Test Auto')
+                                            exact(KeyPullRequest.labelAdded, constant.label.testAuto)
                                         }
                                     }
                                 }
@@ -245,45 +235,28 @@ pipeline {
                     }
                     steps {
                         script {
-                            def launchTestAuto = option['test_e2e']?.toBoolean()
-                                    ?: content[KeyPullRequest.labelsAdded]?.contains('Test Auto')
-                                    ?: content[KeyPullRequest.labels]?.contains('Test Auto')
+                            def launchTestAuto = option[constant.commitOption.testE2E]?.toBoolean()
+                                    ?: content[KeyPullRequest.labels]?.contains(constant.label.testAuto)
                                     ?: false
 
                             /* ANDROID */
                             matcher(content) {
-                                exact(Key.repositoryName, RepositoryName.android)
+                                expression(Key.repositoryName) {
+                                    constant.repositoryToPlatform[it] == constant.platform.android
+                                }
                                 log { message -> log.info message }
                                 onSuccess {
                                     log.info "Triggering android/build for branch: ${content[Key.sourceBranch]}"
                                     build job: 'android/build', parameters: [
-                                            string(name: 'BRANCH_NAME', value: content[Key.sourceBranch]),
-                                            string(name: 'ENVIRONMENT', value: option['environment'] ?: 'debug'),
-                                            string(name: 'LANGUAGE', value: option['language'] ?: 'fr'),
-                                            string(name: 'BRANCH_NAME_QA', value: option['branch_name_qa'] ?: 'master'),
-                                            string(name: 'DEVICE', value: option['device'] ?: ''),
+                                            string(name: 'SOURCE_BRANCH', value: content[Key.sourceBranch]),
+                                            string(name: 'TARGET_BRANCH', value: content[Key.targetBranch]),
+                                            string(name: 'BUILD_TYPE', value: option[constant.commitOption.buildType] ?: constant.buildType.debug),
+                                            string(name: 'FLAVOR_TYPE', value: option[constant.commitOption.flavorType] ?: constant.flavorType.mock),
+                                            string(name: 'LANGUAGE', value: option[constant.commitOption.language] ?: constant.language.en),
+                                            string(name: 'BRANCH_NAME_QA', value: option[constant.commitOption.brancheNameQA] ?: 'master'),
+                                            string(name: 'DEVICE', value: option[constant.commitOption.device] ?: ''),
                                             booleanParam(name: 'TEST_E2E', value: launchTestAuto),
-                                            booleanParam(name: 'TEST_E2E_WAIT_TO_SUCCEED', value: option['test_e2e_wait_to_succeed']?.toBoolean() ?: launchTestAuto),
-                                            string(name: 'COMMIT_AUTHOR', value: content[Key.author]),
-                                            string(name: 'COMMIT_MESSAGE', value: content[Key.commitMessage]),
-                                    ], wait: false
-                                }
-                            }
-
-                            /* IOS */
-                            matcher(content) {
-                                exact(Key.repositoryName, RepositoryName.ios)
-                                log { message -> log.info message }
-                                onSuccess {
-                                    log.info "Triggering ios/build job for branch: ${content[Key.sourceBranch]}"
-                                    build job: 'ios/build', parameters: [
-                                            string(name: 'ENVIRONMENT', value: option['environment'] ?: 'debug'),
-                                            string(name: 'BRANCH_NAME', value: content[Key.sourceBranch]),
-                                            string(name: 'LANGUAGE', value: option['language'] ?: 'fr'),
-                                            string(name: 'BRANCH_NAME_QA', value: option['branch_name_qa'] ?: 'master'),
-                                            string(name: 'DEVICE', value: option['device'] ?: ''),
-                                            booleanParam(name: 'TEST_E2E', value: launchTestAuto),
-                                            booleanParam(name: 'TEST_E2E_WAIT_TO_SUCCEED', value: option['test_e2e_wait_to_succeed']?.toBoolean() ?: launchTestAuto),
+                                            booleanParam(name: 'TEST_E2E_WAIT_TO_SUCCEED', value: option[constant.commitOption.testE2EWaitToSucceed]?.toBoolean() ?: launchTestAuto),
                                             string(name: 'COMMIT_AUTHOR', value: content[Key.author]),
                                             string(name: 'COMMIT_MESSAGE', value: content[Key.commitMessage]),
                                     ], wait: false
@@ -292,7 +265,7 @@ pipeline {
                         }
                     }
                 }
-//                stage('deploy') {
+//                stage('deploy') { //TODO
 //                    when {
 //                        expression {
 //                            // not deleted
@@ -338,7 +311,7 @@ pipeline {
 //
 //                            /* ANDROID */
 //                            matcher(content) {
-//                                exact(Key.repositoryName, RepositoryName.android)
+//                                exact(Key.repositoryName, RepositoryName.android) //TODO
 //                                log { message -> log.info message }
 //                                onSuccess {
 //                                    log.info "Triggering android/deploy for branch: ${content[Key.sourceBranch]}"
@@ -348,26 +321,6 @@ pipeline {
 //                                            string(name: 'ENVIRONMENT', value: environment),
 //                                            string(name: 'MARKETING_VERSION', value: option['marketing_version'] ?: ''),
 //                                            string(name: 'BUNDLE_VERSION', value: option['bundle_version'] ?: ''),
-//                                            //booleanParam(name: 'DRY_RUN', value: option['dry_run']?.toBoolean() ?: false),
-//                                            booleanParam(name: 'DRY_RUN', value: option['dry_run']?.toBoolean() ?: true), // TODO: for now, deploy is just a dry run
-//                                            string(name: 'COMMIT_AUTHOR', value: content[Key.author]),
-//                                            string(name: 'COMMIT_MESSAGE', value: content[Key.commitMessage]),
-//                                    ], wait: false
-//                                }
-//                            }
-//
-//                            /* IOS */
-//                            matcher(content) {
-//                                exact(Key.repositoryName, RepositoryName.ios)
-//                                log { message -> log.info message }
-//                                onSuccess {
-//                                    log.info "Triggering ios/deploy for branch: ${content[Key.sourceBranch]}"
-//                                    build job: 'ios/deploy', parameters: [
-//                                            string(name: 'BRANCH_NAME', value: content[Key.sourceBranch]),
-//                                            string(name: 'RELEASE_NOTE', value: option['release_note'] ?: ''),
-//                                            string(name: 'ENVIRONMENT', value: environment),
-//                                            string(name: 'BUNDLE_VERSION', value: option['bundle_version'] ?: ''),
-//                                            string(name: 'MARKETING_VERSION', value: option['marketing_version'] ?: ''),
 //                                            //booleanParam(name: 'DRY_RUN', value: option['dry_run']?.toBoolean() ?: false),
 //                                            booleanParam(name: 'DRY_RUN', value: option['dry_run']?.toBoolean() ?: true), // TODO: for now, deploy is just a dry run
 //                                            string(name: 'COMMIT_AUTHOR', value: content[Key.author]),

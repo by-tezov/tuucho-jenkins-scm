@@ -8,7 +8,7 @@ enum KeyPullRequest implements IsKey {
     state,
     isDraft,
     targetBranch,
-    labelsAdded,
+    labelAdded,
     labels,
 }
 

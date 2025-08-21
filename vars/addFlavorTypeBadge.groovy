@@ -3,10 +3,10 @@ def call(
 ) {
     switch (flavorType) {
         case constant.flavorType.mock:
-            //TODO
+            addBadge(icon: 'symbol-cloud-offline plugin-ionicons-api', text: 'mock')
             break
         case constant.flavorType.prod:
-            //TODO
+            addBadge(icon: 'symbol-globe plugin-ionicons-api', text: 'prod')
             break
         default:
             error("Unknown flavorType: ${flavorType}")

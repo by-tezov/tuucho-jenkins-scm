@@ -1,0 +1,14 @@
+
+- add unit test on project
+- add coverage on project
+- fix jenkins / nginx link report
+- fix end of pipeline to launch test e2e
+- do the project test end to end
+- add in jenkins + report
+- add let's encrypt
+
+
+// later
+- do the all deploy product android / ios (stage - production)
+- add dsym upload for ios deploy-product
+- split / reduce and scale

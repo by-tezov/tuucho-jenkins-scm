@@ -9,7 +9,8 @@ pipeline {
     }
 
     parameters {
-        string(name: 'BRANCH_NAME', defaultValue: 'master', description: 'Branch name to build')
+        string(name: 'SOURCE_BRANCH', defaultValue: 'master', description: 'Source branch to build')
+        string(name: 'TARGET_BRANCH', defaultValue: 'master', description: 'Target branch to merge (merge is done only locally, not on remote)')
         choice(name: 'BUILD_TYPE', choices: ['debug', 'release'], description: 'Build type')
         choice(name: 'FLAVOR_TYPE', choices: ['mock', 'prod'], description: 'Flavor type')
         choice(name: 'LANGUAGE', choices: ['en', 'fr'], description: 'Language to use for e2e test')
@@ -38,7 +39,8 @@ pipeline {
                     steps {
                         script {
                             addBuildTypeBadge(params.BUILD_TYPE)
-                            currentBuild.displayName = "#${env.BUILD_NUMBER}-${params.BRANCH_NAME}"
+                            addFlavorTypeBadge(params.FLAVOR_TYPE)
+                            currentBuild.displayName = "#${env.BUILD_NUMBER}-${params.SOURCE_BRANCH}"
                             if (params.COMMIT_AUTHOR != '' && params.COMMIT_MESSAGE != '') {
                                 currentBuild.description = "${params.COMMIT_AUTHOR} - ${params.COMMIT_MESSAGE}"
                             }
@@ -67,7 +69,7 @@ pipeline {
             }
             steps {
                 dir('project') {
-                    git branch: params.BRANCH_NAME, credentialsId: "${env.GIT_CREDENTIAL_ID}", url: env.GIT_TUUCHO
+                    git branch: params.SOURCE_BRANCH, credentialsId: "${env.GIT_CREDENTIAL_ID}", url: env.GIT_TUUCHO //TODO merge on target
                 }
             }
         }
@@ -93,8 +95,7 @@ pipeline {
                                 log.info 'marketing version'
                                 // def manifestPath = "./app/src/main/AndroidManifest.xml"
                                 // def manifestContent = readFile(manifestPath)
-                                // TODO appVersion =
-                                // + add to description
+                                // TODO
                             }
                         }
                     }
@@ -108,6 +109,7 @@ pipeline {
             }
             steps {
                 script {
+                    // TODO set flavor on mock
                     runGradleTask('testDebugUnitTest', 'project')
                     if(currentBuild.description != '') {
                         currentBuild.description += "<br>"
@@ -146,6 +148,7 @@ pipeline {
 //                            default: error("Unknown environment: ${params.ENVIRONMENT}")
 //                        }
 //                    }()
+                      // TODO set flavor on env flavor
 //                    runGradleTask(taskName, 'project')
 //                }
 //            }

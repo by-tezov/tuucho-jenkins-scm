@@ -7,6 +7,7 @@ enum Key implements IsKey {
     repositoryName,
     isSourceBranchDeleted,
     sourceBranch,
+    targetBranch,
     commitMessage,
     author,
     pullRequest

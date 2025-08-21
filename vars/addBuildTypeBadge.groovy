@@ -3,10 +3,10 @@ def call(
 ) {
     switch (buildType) {
         case constant.buildType.debug:
-            addBadge(icon: 'symbol-build plugin-ionicons-api', text: 'debug')
+            addBadge(icon: 'symbol-construct plugin-ionicons-api', text: 'debug')
             break
         case constant.buildType.release:
-            addBadge(icon: 'symbol-car-sport plugin-ionicons-api', text: 'release')
+            addBadge(icon: 'symbol-rocket plugin-ionicons-api', text: 'release')
             break
         default:
             error("Unknown buildType: ${buildType}")
