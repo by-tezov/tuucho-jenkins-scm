@@ -16,7 +16,8 @@ pipeline {
 
     parameters {
         string(name: 'BRANCH_NAME', defaultValue: 'master', description: 'Branch name to use')
-        choice(name: 'ENVIRONMENT', choices: ['debug', 'production'], description: 'Environment')
+        choice(name: 'BUILD_TYPE', choices: ['debug', 'release'], description: 'Build type')
+        choice(name: 'FLAVOR_TYPE', choices: ['mock', 'prod'], description: 'Flavor type')
         choice(name: 'LANGUAGE', choices: ['fr', 'en'], description: 'Language')
         string(name: 'CALLER_BUILD_NUMBER', defaultValue: '', description: 'Caller build number')
         choice(name: 'CALLER_PIPELINE_NAME', choices: ['build', 'deploy'], description: 'Pipeline name')
@@ -36,7 +37,7 @@ pipeline {
         PLATFORM = 'android'
         AGENT = 'qa'
         PIPELINE_NAME = env.JOB_NAME.replace("${env.PLATFORM}/", '')
-        PROJECT_FOLDER_PATH = getProjectFolderPath(env.AGENT, env.PIPELINE_NAME, env.BUILD_NUMBER)
+        PROJECT_FOLDER_PATH = getProjectFolderPath()
     }
 
     options {
@@ -50,7 +51,8 @@ pipeline {
                     steps {
                         script {
                             addPlatformBadge(env.PLATFORM)
-                            addEnvironmentBadge(params.ENVIRONMENT)
+                            addBuildTypeBadge(params.BUILD_TYPE)
+                            addFlavorTypeBadge(params.FLAVOR_TYPE)
                             // TODO: CALLER_PIPELINE_NAME icon
                             currentBuild.displayName = "#${env.BUILD_NUMBER}-${params.CALLER_BUILD_NUMBER}-${params.BRANCH_NAME}"
                             if (params.COMMIT_AUTHOR != '' && params.COMMIT_MESSAGE != '') {
@@ -68,8 +70,7 @@ pipeline {
                     }
                     steps {
                         script {
-                            sleep 1
-                            cleanWorkspaces(env.AGENT_QA_PATH, env.JOB_NAME)
+                            cleanWorkspaces()
                         }
                     }
                 }
@@ -100,7 +101,7 @@ pipeline {
             }
             steps {
                 dir('project') {
-                    git branch: "${params.BRANCH_NAME}", credentialsId: "${env.GIT_CREADENTIAL_ID}", url: "${env.GIT_URL_QA}"
+                    git branch: "${params.BRANCH_NAME}", credentialsId: "${env.GIT_CREADENTIAL_ID}", url: "${env.GIT_QA}"
                 }
             }
         }
@@ -124,7 +125,7 @@ pipeline {
                 lock(resource: deviceToUse) {
                     script {
                         applicationLocation = getApplicationLocation(
-                                params.ENVIRONMENT,
+                                params.BUILD_TYPE,
                                 env.PLATFORM,
                                 params.CALLER_PIPELINE_NAME,
                                 params.CALLER_BUILD_NUMBER

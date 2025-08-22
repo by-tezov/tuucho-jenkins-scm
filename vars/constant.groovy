@@ -1,4 +1,33 @@
 @groovy.transform.Field
+def label = [
+        testAuto: 'Test Auto'
+]
+
+@groovy.transform.Field
+def language = [
+        en: 'en',
+        fr: 'fr'
+]
+
+@groovy.transform.Field
+def flavorType = [
+        mock: 'mock',
+        prod: 'prod'
+]
+
+@groovy.transform.Field
+def buildType = [
+        debug  : 'debug',
+        release: 'release'
+]
+
+@groovy.transform.Field
+def assembleTask = [
+        debug: 'assembleDebug',
+        release: 'assembleRelease'
+]
+
+@groovy.transform.Field
 def repositoryToPlatform = [
         tuucho: 'android'
 ]
@@ -14,29 +43,6 @@ def agent = [
 def platform = [
         android: 'android',
         ios    : 'ios',
-]
-
-@groovy.transform.Field
-def buildType = [
-        debug  : 'debug',
-        release: 'release'
-]
-
-@groovy.transform.Field
-def flavorType = [
-        mock: 'mock',
-        prod: 'prod'
-]
-
-@groovy.transform.Field
-def label = [
-        testAuto: 'Test Auto'
-]
-
-@groovy.transform.Field
-def language = [
-        en: 'en',
-        fr: 'fr'
 ]
 
 @groovy.transform.Field

@@ -1,6 +1,12 @@
 - fix end of pipeline to launch test e2e
 - do the project test end to end
-- add in jenkins + report
+- add in jenkins + allure report
+
+- fix and test push / pull_request
+
+
+- clean + saved push
+-do the medium article
 
 // later
 - add let's encrypt

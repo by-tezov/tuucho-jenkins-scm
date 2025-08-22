@@ -39,12 +39,14 @@ pipeline {
                         script {
                             addBuildTypeBadge(params.BUILD_TYPE)
                             addFlavorTypeBadge(params.FLAVOR_TYPE)
-                            currentBuild.displayName = "#${env.BUILD_NUMBER}-${params.SOURCE_BRANCH}"
+                            currentBuild.displayName = "#${env.BUILD_NUMBER}"
                             if (params.COMMIT_AUTHOR != '' && params.COMMIT_MESSAGE != '') {
-                                currentBuild.description = "${params.COMMIT_AUTHOR} - ${params.COMMIT_MESSAGE}"
+                                currentBuild.description = "${params.COMMIT_AUTHOR} - ${params.COMMIT_MESSAGE}<br>"
                             } else {
                                 currentBuild.description = ''
                             }
+                            currentBuild.description += "${params.SOURCE_BRANCH}"
+                            currentBuild.description += "<br>-> ${params.TARGET_BRANCH}"
                         }
                     }
                 }
@@ -59,14 +61,29 @@ pipeline {
             }
         }
 
-        stage('clone git') {
+        stage('clone and merge') {
             options {
                 timeout(time: 5, unit: 'MINUTES')
             }
             steps {
                 dir('project') {
                     git branch: params.SOURCE_BRANCH, credentialsId: "${env.GIT_CREDENTIAL_ID}", url: env.GIT_TUUCHO
-                    //TODO merge on target
+                    script {
+                        sh """
+                            git fetch origin ${params.TARGET_BRANCH}:${params.TARGET_BRANCH}
+                            git rebase ${params.TARGET_BRANCH}
+                        """
+                        def N = sh(
+                                script: "git rev-list --count ${params.TARGET_BRANCH}..${params.SOURCE_BRANCH}",
+                                returnStdout: true
+                        ).trim()
+                        log.info "************ Squash and Merge ${N} commits from ${params.SOURCE_BRANCH} into ${params.TARGET_BRANCH} ************"
+                        sh """
+                            git checkout ${params.TARGET_BRANCH}
+                            git merge --squash ${params.SOURCE_BRANCH} > /dev/null 2>&1
+                            git commit -m "Merge from ${params.SOURCE_BRANCH}"
+                        """
+                    }
                 }
             }
         }
@@ -79,10 +96,7 @@ pipeline {
                 script {
                     replaceFlavorType(constant.flavorType.mock)
                     runGradleTask('allUnitTestsDebug', 'project')
-                    if (currentBuild.description != '') {
-                        currentBuild.description += "<br>"
-                    }
-                    currentBuild.description += """<a href="http://localhost/jenkins/report/${env.JOB_NAME}/_${env.BUILD_NUMBER}/project/${env.REPORT_TUUCHO_UNIT_TEST_FILE}" target="_blank">Tests report</a>"""
+                    currentBuild.description += """<br><a href="http://localhost/jenkins/report/${env.JOB_NAME}/_${env.BUILD_NUMBER}/project/${env.REPORT_TUUCHO_UNIT_TEST_FILE}" target="_blank">Tests report</a>"""
                 }
             }
         }
@@ -99,49 +113,41 @@ pipeline {
             }
         }
 
-        //TODO
-//        stage('build for e2e test') {
-//            options {
-//                timeout(time: 20, unit: 'MINUTES')
-//            }
-//            when {
-//                expression { params.TEST_E2E  }
-//            }
-//            steps {
-//                script {
-//                    // TODO: in vars
-//                    def taskName = {
-//                        switch (params.ENVIRONMENT) {
-//                            case 'debug': return 'assembleDebug'
-//                            case 'production': return 'assembleProduction'
-//                            default: error("Unknown environment: ${params.ENVIRONMENT}")
-//                        }
-//                    }()
-//TODO replace flavor with params floavor
-//                    runGradleTask(taskName, 'project')
-//                }
-//            }
-//        }
-//
-//        stage('launch e2e test') {
-//            when {
-//                expression { params.TEST_E2E }
-//            }
-//            steps {
-//                script {
-//                    build job: 'android/test-e2e', parameters:[
-//                            string(name: 'ENVIRONMENT', value: params.ENVIRONMENT),
-//                            string(name: 'CALLER_PIPELINE_NAME', value: env.PIPELINE_NAME),
-//                            string(name: 'CALLER_BUILD_NUMBER', value: env.BUILD_NUMBER),
-//                            string(name: 'LANGUAGE', value: params.LANGUAGE),
-//                            string(name: 'BRANCH_NAME', value: params.BRANCH_NAME_QA),
-//                            string(name: 'DEVICE', value: params.DEVICE),
-//                            string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
-//                            string(name: 'COMMIT_MESSAGE', value: params.COMMIT_MESSAGE),
-//                            string(name: 'APP_VERSION', value: appVersion),
-//                    ], wait: params.TEST_E2E_WAIT_TO_SUCCEED
-//                }
-//            }
-//        }
+        stage('build for e2e test') {
+            options {
+                timeout(time: 20, unit: 'MINUTES')
+            }
+            when {
+                expression { params.TEST_E2E }
+            }
+            steps {
+                script {
+                    replaceFlavorType(params.FLAVOR_TYPE)
+                    runGradleTask(constant.assembleTask[params.BUILD_TYPE], 'project')
+                }
+            }
+        }
+
+        stage('launch e2e test') {
+            when {
+                expression { params.TEST_E2E }
+            }
+            steps {
+                script {
+                    build job: 'android/test-e2e', parameters: [
+                            string(name: 'BUILD_TYPE', value: params.BUILD_TYPE),
+                            string(name: 'FLAVOR_TYPE', value: params.FLAVOR_TYPE),
+                            string(name: 'CALLER_PIPELINE_NAME', value: env.PIPELINE_NAME),
+                            string(name: 'CALLER_BUILD_NUMBER', value: env.BUILD_NUMBER),
+                            string(name: 'LANGUAGE', value: params.LANGUAGE),
+                            string(name: 'BRANCH_NAME', value: params.BRANCH_NAME_QA),
+                            string(name: 'DEVICE', value: params.DEVICE),
+                            string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
+                            string(name: 'COMMIT_MESSAGE', value: params.COMMIT_MESSAGE),
+                            string(name: 'APP_VERSION', value: appVersion),
+                    ], wait: params.TEST_E2E_WAIT_TO_SUCCEED
+                }
+            }
+        }
     }
 }
