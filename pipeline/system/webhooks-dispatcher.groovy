@@ -74,21 +74,17 @@ pipeline {
                                 )
                                 try {
                                     def jsonResponseContent = readJSON text: response.content
-                                    def pullRequests = []
-                                    jsonResponseContent.each { responseContent ->
-                                        def pullRequest = [:]
-                                        pullRequest[KeyPullRequest.targetBranch] = responseContent.base.ref
-                                        pullRequest[KeyPullRequest.number] = responseContent.number
-                                        pullRequest[KeyPullRequest.state] = responseContent.state
-                                        pullRequest[KeyPullRequest.isDraft] = responseContent.draft
-                                        pullRequest[KeyPullRequest.labels] = responseContent.labels.collect { it.name }
-                                        pullRequests.add(pullRequest)
+                                    if (jsonResponseContent.size() > 1) {
+                                        error("multiple pull request found, source ${content[Key.sourceBranch]} can target have only one pull request...")
                                     }
-                                    if (pullRequests.size() == 1) {
-                                        content[Key.pullRequest] = pullRequests[0]
-                                    } else if (pullRequests.size() > 1) {
-                                        content[Key.pullRequest] = pullRequests
-                                    }
+                                    def pullRequestResponse = jsonResponseContent[0]
+                                    def pullRequest = [:]
+                                    pullRequest[KeyPullRequest.targetBranch] = pullRequestResponse.base.ref
+                                    pullRequest[KeyPullRequest.number] = pullRequestResponse.number
+                                    pullRequest[KeyPullRequest.state] = pullRequestResponse.state
+                                    pullRequest[KeyPullRequest.isDraft] = pullRequestResponse.draft
+                                    pullRequest[KeyPullRequest.labels] = pullRequestResponse.labels.collect { it.name }
+                                    content[Key.pullRequest] = pullRequest
                                 }
                                 catch (error) {
                                     log.error error
@@ -98,11 +94,14 @@ pipeline {
                             log.info "content: ${content}"
 
                             if (content[Key.isSourceBranchDeleted]) {
-                                currentBuild.displayName = "#${env.BUILD_NUMBER}-${content[Key.sourceBranch]}"
-                                currentBuild.description = "${jsonPayload.pusher.name} branch deleted"
+                                currentBuild.displayName = "#${env.BUILD_NUMBER}"
+                                currentBuild.description = "${content[Key.sourceBranch]}"
+                                currentBuild.description += "<br>${jsonPayload.pusher.name} branch deleted"
                             } else {
-                                currentBuild.displayName = "#${env.BUILD_NUMBER}-${content[Key.sourceBranch]}"
-                                currentBuild.description = "${content[Key.author]}\n${content[Key.commitMessage]}"
+                                currentBuild.displayName = "#${env.BUILD_NUMBER}"
+                                currentBuild.description = "${content[Key.author]} - ${content[Key.commitMessage]}<br>"
+                                currentBuild.description += "${content[Key.sourceBranch]}"
+                                currentBuild.description += "<br>-> ${content[KeyPullRequest.targetBranch]}"
                             }
                         }
                     }
@@ -160,8 +159,11 @@ pipeline {
                                 log.info response.content
                             }
                             log.info "content: ${content}"
-                            currentBuild.displayName = "#${env.BUILD_NUMBER}-${content[Key.sourceBranch]}"
-                            currentBuild.description = "${content[Key.author]} - ${content[Key.commitMessage]}"
+
+                            currentBuild.displayName = "#${env.BUILD_NUMBER}"
+                            currentBuild.description = "${content[Key.author]} - ${content[Key.commitMessage]}<br>"
+                            currentBuild.description += "${content[Key.sourceBranch]}"
+                            currentBuild.description += "<br>-> ${content[KeyPullRequest.targetBranch]}"
                         }
                     }
                 }
@@ -249,14 +251,13 @@ pipeline {
                                     log.info "Triggering android/build for branch: ${content[Key.sourceBranch]}"
                                     build job: 'android/build', parameters: [
                                             string(name: 'SOURCE_BRANCH', value: content[Key.sourceBranch]),
-                                            string(name: 'TARGET_BRANCH', value: content[Key.targetBranch]),
+                                            string(name: 'TARGET_BRANCH', value: content[KeyPullRequest.targetBranch]),
                                             string(name: 'BUILD_TYPE', value: option[constant.commitOption.buildType] ?: constant.buildType.debug),
                                             string(name: 'FLAVOR_TYPE', value: option[constant.commitOption.flavorType] ?: constant.flavorType.mock),
                                             string(name: 'LANGUAGE', value: option[constant.commitOption.language] ?: constant.language.en),
-                                            string(name: 'BRANCH_NAME_QA', value: option[constant.commitOption.brancheNameQA] ?: 'master'),
-                                            string(name: 'DEVICE', value: option[constant.commitOption.device] ?: ''),
+                                            string(name: 'BRANCH_NAME_QA', value: option[constant.commitOption.brancheNameQA] ?: 'chore/migration-tuucho'),
                                             booleanParam(name: 'TEST_E2E', value: launchTestAuto),
-                                            booleanParam(name: 'TEST_E2E_WAIT_TO_SUCCEED', value: option[constant.commitOption.testE2EWaitToSucceed]?.toBoolean() ?: launchTestAuto),
+                                            booleanParam(name: 'TEST_E2E_WAIT_TO_SUCCEED', value: option[constant.commitOption.testE2EWaitToSucceed]?.toBoolean() ?: false),
                                             string(name: 'COMMIT_AUTHOR', value: content[Key.author]),
                                             string(name: 'COMMIT_MESSAGE', value: content[Key.commitMessage]),
                                     ], wait: false
@@ -265,74 +266,9 @@ pipeline {
                         }
                     }
                 }
-//                stage('deploy') { //TODO
-//                    when {
-//                        expression {
-//                            // not deleted
-//                            // and pull_request and labeled
-//                            // and
-//                            //       release and label All
-//                            //   or
-//                            //       epic|feat|chore|fix and label Debug
-//                            matcher(content) {
-//                                and {
-//                                    expression(Key.isSourceBranchDeleted) { it == null || it == false }
-//                                    exact(Key.type, Type.pull)
-//                                    exact(KeyPullRequest.action, PullRequestAction.labeled)
-//                                    or {
-//                                        and {
-//                                            regex(Key.sourceBranch, /release\/.*/)
-//                                            or {
-//                                                contains(KeyPullRequest.labelsAdded, 'Debug deploy')
-//                                                contains(KeyPullRequest.labelsAdded, 'Production deploy')
-//                                            }
-//                                        }
-//                                        and {
-//                                            regex(Key.sourceBranch, /(?:epic|feat|chore|fix)\/.*/)
-//                                            or {
-//                                                contains(KeyPullRequest.labelsAdded, 'Debug deploy')
-//                                            }
-//                                        }
-//                                    }
-//                                }
-//                                log { message -> log.info message }
-//                            }
-//                        }
-//                    }
-//                    steps {
-//                        script {
-//                            def environment = option['environment'] ?: {
-//                                //switch (content[KeyPullRequest.label]) {
-//                                    case 'Debug deploy': return 'debug'
-//                                    //case production not done on purpose
-//                                    default: return 'debug'
-//                                }
-//                            }()
-//
-//                            /* ANDROID */
-//                            matcher(content) {
-//                                exact(Key.repositoryName, RepositoryName.android) //TODO
-//                                log { message -> log.info message }
-//                                onSuccess {
-//                                    log.info "Triggering android/deploy for branch: ${content[Key.sourceBranch]}"
-//                                    build job: 'android/deploy', parameters: [
-//                                            string(name: 'BRANCH_NAME', value: content[Key.sourceBranch]),
-//                                            string(name: 'RELEASE_NOTE', value: option['release_note'] ?: "deploy ${content[Key.sourceBranch]}"),
-//                                            string(name: 'ENVIRONMENT', value: environment),
-//                                            string(name: 'MARKETING_VERSION', value: option['marketing_version'] ?: ''),
-//                                            string(name: 'BUNDLE_VERSION', value: option['bundle_version'] ?: ''),
-//                                            //booleanParam(name: 'DRY_RUN', value: option['dry_run']?.toBoolean() ?: false),
-//                                            booleanParam(name: 'DRY_RUN', value: option['dry_run']?.toBoolean() ?: true), // TODO: for now, deploy is just a dry run
-//                                            string(name: 'COMMIT_AUTHOR', value: content[Key.author]),
-//                                            string(name: 'COMMIT_MESSAGE', value: content[Key.commitMessage]),
-//                                    ], wait: false
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
             }
         }
+        /* TODO stage deploy */
     }
     post {
         failure {

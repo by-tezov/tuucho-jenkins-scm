@@ -1,7 +1,7 @@
 def call(
-        String buildType,
         String platform,
-        String pipeline,
+        String buildType,
+        String jobName,
         String buildNumber
 ) {
     switch (platform) {
@@ -15,12 +15,12 @@ def call(
                     environmentToken = 'release'
                     break
                 default:
-                    error("Unknown environment: ${buildType}")
+                    error("getApplicationLocation: unknown environment: ${buildType}")
             }
-            def ANDROID_BUILD_APP_FILE_PATH = "app/build/outputs/apk/real/${environmentToken}"
+            def ANDROID_BUILD_APP_FILE_PATH = "app/android/build/outputs/apk/${environmentToken}"
             return [
-                    path: "${getProjectFolderPath(platform, pipeline, buildNumber)}/${ANDROID_BUILD_APP_FILE_PATH}",
-                    file: "app-real-${environmentToken}.apk"
+                    path: "${getProjectFolderPath(platform, jobName, buildNumber)}/${ANDROID_BUILD_APP_FILE_PATH}",
+                    file: "android-${buildType}.apk"
             ]
             break
 
@@ -36,11 +36,11 @@ def call(
                         environmentToken = 'Release'
                         break
                     default:
-                        error("Unknown environment: ${buildType}")
+                        error("getApplicationLocation: unknown environment: ${buildType}")
                 }
-                def IOS_BUILD_APP_FILE_PATH = "build/Build/Products/${environmentToken}-iphoneos"
+                def IOS_BUILD_APP_FILE_PATH = "app/ios/build/Build/Products/${environmentToken}-iphoneos"
                 return [
-                        path: "${getProjectFolderPath(target, pipeline, buildNumber)}/${IOS_BUILD_APP_FILE_PATH}",
+                        path: "${getProjectFolderPath(target, jobName, buildNumber)}/${IOS_BUILD_APP_FILE_PATH}",
                         file: "tuucho_ios.app"
                 ]
             }
@@ -48,13 +48,13 @@ def call(
             if (variant == 'ipa') {
                 def IOS_ARCHIVE_IPA_FILE_PATH = 'archive'
                 return [
-                        path: "${getProjectFolderPath(target, pipeline, buildNumber)}/${IOS_ARCHIVE_IPA_FILE_PATH}",
-                        file: "tezov_ios.ipa"
+                        path: "${getProjectFolderPath(target, jobName, buildNumber)}/${IOS_ARCHIVE_IPA_FILE_PATH}",
+                        file: "tuucho_ios.ipa"
                 ]
             }
             break
 
         default:
-            error("Unknown platform: ${platform}")
+            error("getApplicationLocation: unknown platform: ${platform}")
     }
 }

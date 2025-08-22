@@ -9,6 +9,6 @@ def call(
             addBadge(icon: 'symbol-logo-apple plugin-ionicons-api', text: 'ios')
             break
         default:
-            error("Unknown platform: ${platform}")
+            error("addPlatformBadge: unknown platform: ${platform}")
     }
 }

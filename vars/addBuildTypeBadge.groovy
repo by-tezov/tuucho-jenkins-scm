@@ -9,6 +9,6 @@ def call(
             addBadge(icon: 'symbol-rocket plugin-ionicons-api', text: 'release')
             break
         default:
-            error("Unknown buildType: ${buildType}")
+            error("addBuildTypeBadge: unknown buildType: ${buildType}")
     }
 }

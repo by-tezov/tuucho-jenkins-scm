@@ -9,6 +9,6 @@ def call(
             addBadge(icon: 'symbol-globe plugin-ionicons-api', text: 'prod')
             break
         default:
-            error("Unknown flavorType: ${flavorType}")
+            error("addFlavorTypeBadge: unknown flavorType: ${flavorType}")
     }
 }

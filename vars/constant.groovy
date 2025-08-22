@@ -52,6 +52,5 @@ def commitOption = [
         flavorType          : 'flavor_type',
         language            : 'language',
         branchNameQA        : 'branch_name_qa',
-        device              : 'device',
         testE2EWaitToSucceed: 'test_e2e_wait_to_succeed'
 ]

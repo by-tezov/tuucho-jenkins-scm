@@ -5,7 +5,7 @@ def call(
     def libsContent = readFile libsFile
     def matcher = libsContent =~ /(?m)^(?!#)flavor\s*=.*$/
     if (!matcher) {
-        error("No active 'flavor' line found in ${libsFile}, cannot replace.")
+        error("replaceFlavorType: no active 'flavor' line found in ${libsFile}, cannot replace.")
     }
     def newContent = libsContent.replaceFirst(/(?m)^(?!#)flavor\s*=.*$/, "flavor = \"${flavor}\"")
     writeFile file: libsFile, text: newContent
