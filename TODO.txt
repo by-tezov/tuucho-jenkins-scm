@@ -1,12 +1,5 @@
-- fix end of pipeline to launch test e2e
-- do the project test end to end
-- add in jenkins + allure report
-
-- fix and test push / pull_request
-
-
-- clean + saved push
--do the medium article
+- dispatcher fix (merged, deleted to avoid errors, example missing pull request)
+- build / test 2e2, update to allow launch without SHA for statuses
 
 // later
 - add let's encrypt
