@@ -1,4 +1,4 @@
-@Library('library@chore/migrate-to-tuucho') _
+@Library('library@master') _
 
 String deviceToLock_Name = null
 String deviceToLock_Id = null

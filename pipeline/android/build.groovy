@@ -1,4 +1,4 @@
-@Library('library@chore/migrate-to-tuucho') _
+@Library('library@master') _
 
 pipeline {
     agent {
