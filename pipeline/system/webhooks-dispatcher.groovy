@@ -225,7 +225,7 @@ pipeline {
                                             string(name: 'BUILD_TYPE', value: option[constant.commitOption.buildType] ?: constant.buildType.debug),
                                             string(name: 'FLAVOR_TYPE', value: option[constant.commitOption.flavorType] ?: constant.flavorType.mock),
                                             string(name: 'LANGUAGE', value: option[constant.commitOption.language] ?: constant.language.en),
-                                            string(name: 'BRANCH_NAME_QA', value: option[constant.commitOption.brancheNameQA] ?: 'chore/migration-tuucho'),
+                                            string(name: 'BRANCH_NAME_QA', value: option[constant.commitOption.brancheNameQA] ?: 'master'),
                                             booleanParam(name: 'TEST_E2E', value: launchTestAuto),
                                             booleanParam(name: 'TEST_E2E_WAIT_TO_SUCCEED', value: option[constant.commitOption.testE2EWaitToSucceed]?.toBoolean() ?: false),
                                             string(name: 'COMMIT_AUTHOR', value: content[Key.author]),
