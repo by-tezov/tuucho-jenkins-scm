@@ -50,7 +50,6 @@ pipeline {
                     steps {
                         script {
                             addBadge(icon: 'symbol-git-pull-request-outline plugin-ionicons-api', text: 'push')
-
                             def jsonPayload = readJSON text: payload
                             content[Key.type] = Type.push.value
                             content[Key.repositoryName] = jsonPayload.repository.name
@@ -61,38 +60,20 @@ pipeline {
                             if (!content[Key.isSourceBranchDeleted]) {
                                 content[Key.author] = jsonPayload.head_commit.author.name
                                 content[Key.commitMessage] = jsonPayload.head_commit.message
-                                // retrieve pull requests associated to source branch
-                                def response = httpRequest(
-                                        url: "https://api.github.com/repos/${jsonPayload.repository.full_name}/pulls?head=${jsonPayload.repository.organization}:${content[Key.sourceBranch]}",
-                                        timeout: env.GITHUB_API_REQUEST_TIMEOUT.toInteger(),
-                                        httpMode: 'GET',
-                                        customHeaders: [
-                                                [name: 'Accept', value: "application/json"],
-                                                [name: 'Authorization', value: "Bearer ${GITHUB_API_TOKEN}"]
-                                        ],
-                                        validResponseCodes: '200'
+                                def pullRequestResponse = getPullRequestData(
+                                        content[Key.sourceBranch]
                                 )
-                                try {
-                                    def jsonResponseContent = readJSON text: response.content
-                                    if (jsonResponseContent.size() > 1) {
-                                        error("multiple pull request found, source ${content[Key.sourceBranch]} can target have only one pull request...")
-                                    }
-                                    def pullRequestResponse = jsonResponseContent[0]
-                                    def pullRequest = [:]
-                                    pullRequest[KeyPullRequest.targetBranch] = pullRequestResponse.base.ref
-                                    pullRequest[KeyPullRequest.number] = pullRequestResponse.number
-                                    pullRequest[KeyPullRequest.state] = pullRequestResponse.state
-                                    pullRequest[KeyPullRequest.isDraft] = pullRequestResponse.draft
-                                    pullRequest[KeyPullRequest.labels] = pullRequestResponse.labels.collect { it.name }
-                                    content[Key.pullRequest] = pullRequest
-                                }
-                                catch (error) {
-                                    log.error error
-                                    log.info response.content
-                                }
+                                def pullRequest = [:]
+                                pullRequest[KeyPullRequest.sha] = pullRequestResponse.head.sha
+                                pullRequest[KeyPullRequest.targetBranch] = pullRequestResponse.base.ref
+                                pullRequest[KeyPullRequest.number] = pullRequestResponse.number
+                                pullRequest[KeyPullRequest.state] = pullRequestResponse.state
+                                pullRequest[KeyPullRequest.isDraft] = pullRequestResponse.draft
+                                pullRequest[KeyPullRequest.labels] = pullRequestResponse.labels.collect { it.name }
+                                content[Key.pullRequest] = pullRequest
                             }
-                            log.info "content: ${content}"
 
+                            log.info "content: ${content}"
                             if (content[Key.isSourceBranchDeleted]) {
                                 currentBuild.displayName = "#${env.BUILD_NUMBER}"
                                 currentBuild.description = "${content[Key.sourceBranch]}"
@@ -121,6 +102,7 @@ pipeline {
                             content[Key.sourceBranch] = jsonPayload.pull_request.head.ref
 
                             def pullRequest = [:]
+                            pullRequest[KeyPullRequest.sha] = jsonPayload.pull_request.head.sha
                             pullRequest[KeyPullRequest.action] = jsonPayload.action
                             pullRequest[KeyPullRequest.targetBranch] = jsonPayload.pull_request.base.ref
                             pullRequest[KeyPullRequest.number] = jsonPayload.number
@@ -137,29 +119,13 @@ pipeline {
                                 }
                             }
                             content[Key.pullRequest] = pullRequest
-                            // retrieve last source branch commit
-                            def response = httpRequest(
-                                    url: "https://api.github.com/repos/${jsonPayload.repository.full_name}/commits?sha=${jsonPayload.pull_request.head.sha}&per_page=1&page=1",
-                                    timeout: env.GITHUB_API_REQUEST_TIMEOUT.toInteger(),
-                                    httpMode: 'GET',
-                                    customHeaders: [
-                                            [name: 'Accept', value: "application/json"],
-                                            [name: 'Authorization', value: "Bearer ${GITHUB_API_TOKEN}"]
-                                    ],
-                                    validResponseCodes: '200'
+                            def headCommit = getHeadCommitData(
+                                    jsonPayload.pull_request.head.sha
                             )
-                            try {
-                                def jsonResponseContent = readJSON text: response.content
-                                def headCommit = jsonResponseContent[0]
-                                content[Key.commitMessage] = headCommit.commit.message
-                                content[Key.author] = headCommit.commit.author.name
-                            }
-                            catch (error) {
-                                log.error error
-                                log.info response.content
-                            }
-                            log.info "content: ${content}"
+                            content[Key.commitMessage] = headCommit.commit.message
+                            content[Key.author] = headCommit.commit.author.name
 
+                            log.info "content: ${content}"
                             currentBuild.displayName = "#${env.BUILD_NUMBER}"
                             currentBuild.description = "${content[Key.author]} - ${content[Key.commitMessage]}<br>"
                             currentBuild.description += "${content[Key.sourceBranch]}"
@@ -205,7 +171,7 @@ pipeline {
                             //   or
                             //       pull_request and (opened | reopened)
                             //   or
-                            //       label 'Test Auto'
+                            //       label ('Test Auto' or 'Unit Test')
                             matcher(content) {
                                 and {
                                     expression(Key.isSourceBranchDeleted) { it == null || it == false }
@@ -227,7 +193,10 @@ pipeline {
                                         and {
                                             exact(Key.type, Type.pull)
                                             exact(KeyPullRequest.action, PullRequestAction.labeled)
-                                            exact(KeyPullRequest.labelAdded, constant.label.testAuto)
+                                            or {
+                                                exact(KeyPullRequest.labelAdded, constant.label.testAuto)
+                                                exact(KeyPullRequest.labelAdded, constant.label.unitTest)
+                                            }
                                         }
                                     }
                                 }
@@ -250,6 +219,7 @@ pipeline {
                                 onSuccess {
                                     log.info "Triggering android/build for branch: ${content[Key.sourceBranch]}"
                                     build job: 'android/build', parameters: [
+                                            string(name: 'PULL_REQUEST_SHA', value: content[KeyPullRequest.sha]),
                                             string(name: 'SOURCE_BRANCH', value: content[Key.sourceBranch]),
                                             string(name: 'TARGET_BRANCH', value: content[KeyPullRequest.targetBranch]),
                                             string(name: 'BUILD_TYPE', value: option[constant.commitOption.buildType] ?: constant.buildType.debug),

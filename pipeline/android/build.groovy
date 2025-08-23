@@ -9,6 +9,7 @@ pipeline {
     }
 
     parameters {
+        string(name: 'PULL_REQUEST_SHA', defaultValue: '', description: 'Pull request sha (used to update status on GitHub)')
         string(name: 'SOURCE_BRANCH', defaultValue: '', description: 'Source branch to build')
         string(name: 'TARGET_BRANCH', defaultValue: '', description: 'Target branch to merge (merge is done only locally, not on remote)')
         choice(name: 'BUILD_TYPE', choices: ['debug', 'release'], description: 'Build type')
@@ -23,6 +24,7 @@ pipeline {
 
     environment {
         AGENT = 'android'
+        GITHUB_API_TOKEN = credentials('github-api-token')
     }
 
     options {
@@ -48,6 +50,18 @@ pipeline {
                         }
                     }
                 }
+                stage('status pending') {
+                    steps {
+                        script {
+                            setPullRequestStatus(
+                                    params.PULL_REQUEST_SHA,
+                                    constant.pullRequestStatus.pending,
+                                    constant.pullRequestContextStatus.pr,
+                                    "${env.BUILD_NUMBER} - Buiding job initiated: build type:${params.BUILD_TYPE}, flavor type:${params.FLAVOR_TYPE}"
+                            )
+                        }
+                    }
+                }
                 stage('clean workspaces') {
                     options {
                         timeout(time: 1, unit: 'MINUTES')
@@ -65,6 +79,14 @@ pipeline {
             }
             steps {
                 dir('project') {
+                    script {
+                        setPullRequestStatus(
+                                params.PULL_REQUEST_SHA,
+                                constant.pullRequestStatus.pending,
+                                constant.pullRequestContextStatus.pr,
+                                "${env.BUILD_NUMBER} - Cloning and Merging: source: ${params.SOURCE_BRANCH} -> target:${params.TARGET_BRANCH}"
+                        )
+                    }
                     git branch: params.SOURCE_BRANCH, credentialsId: "${env.GIT_CREDENTIAL_ID}", url: env.GIT_TUUCHO
                     script {
                         sh """
@@ -94,6 +116,14 @@ pipeline {
             }
             steps {
                 script {
+                    setPullRequestStatus(
+                            params.PULL_REQUEST_SHA,
+                            constant.pullRequestStatus.pending,
+                            constant.pullRequestContextStatus.pr,
+                            "${env.BUILD_NUMBER} - Unit Testing: Finger crossed..."
+                    )
+                }
+                script {
                     replaceFlavorType(constant.flavorType.mock)
                     runGradleTask('allUnitTestsDebug', 'project')
                     currentBuild.description += """<br><a href="http://localhost/jenkins/report/android-build/${env.JOB_NAME}/_${env.BUILD_NUMBER}/project/${env.REPORT_TUUCHO_UNIT_TEST_FILE}" target="_blank">Tests report</a>"""
@@ -106,6 +136,14 @@ pipeline {
                 timeout(time: 2, unit: 'MINUTES')
             }
             steps {
+                script {
+                    setPullRequestStatus(
+                            params.PULL_REQUEST_SHA,
+                            constant.pullRequestStatus.pending,
+                            constant.pullRequestContextStatus.pr,
+                            "${env.BUILD_NUMBER} - Coverage reporting"
+                    )
+                }
                 script {
                     runGradleTask('koverHtmlReport', 'project')
                     currentBuild.description += """<br><a href="http://localhost/jenkins/report/android-build/${env.JOB_NAME}/_${env.BUILD_NUMBER}/project/${env.REPORT_TUUCHO_COVERAGE_FILE}" target="_blank">Coverage report</a>"""
@@ -122,6 +160,14 @@ pipeline {
             }
             steps {
                 script {
+                    setPullRequestStatus(
+                            params.PULL_REQUEST_SHA,
+                            constant.pullRequestStatus.pending,
+                            constant.pullRequestContextStatus.pr,
+                            "${env.BUILD_NUMBER} - Building for e2e test"
+                    )
+                }
+                script {
                     replaceFlavorType(params.FLAVOR_TYPE)
                     runGradleTask(constant.assembleTask[params.BUILD_TYPE], 'project')
                 }
@@ -134,7 +180,16 @@ pipeline {
             }
             steps {
                 script {
+                    setPullRequestStatus(
+                            params.PULL_REQUEST_SHA,
+                            constant.pullRequestStatus.pending,
+                            constant.pullRequestContextStatus.pr,
+                            "${env.BUILD_NUMBER} - Launch e2e test"
+                    )
+                }
+                script {
                     build job: 'android/test-e2e', parameters: [
+                            string(name: 'PULL_REQUEST_SHA', value: params.PULL_REQUEST_SHA),
                             string(name: 'BUILD_TYPE', value: params.BUILD_TYPE),
                             string(name: 'FLAVOR_TYPE', value: params.FLAVOR_TYPE),
                             string(name: 'CALLER_JOB_NAME', value: env.JOB_NAME),
@@ -149,4 +204,31 @@ pipeline {
             }
         }
     }
+    post {
+        success {
+            script {
+                if (!params.TEST_E2E) {
+                    setPullRequestStatus(
+                            params.PULL_REQUEST_SHA,
+                            constant.pullRequestStatus.success,
+                            constant.pullRequestContextStatus.pr,
+                            "${env.BUILD_NUMBER} - Succeed: Make sure to read yourself again before to merge ;)"
+                    )
+                }
+            }
+        }
+        failure {
+            script {
+                if (!params.TEST_E2E) {
+                    setPullRequestStatus(
+                            params.PULL_REQUEST_SHA,
+                            constant.pullRequestStatus.failure,
+                            constant.pullRequestContextStatus.pr,
+                            "${env.BUILD_NUMBER} - Failed: Mm, I can't help you, but maybe the logs will... :"
+                    )
+                }
+            }
+        }
+    }
+
 }

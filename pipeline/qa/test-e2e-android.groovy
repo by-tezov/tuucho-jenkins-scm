@@ -16,6 +16,7 @@ pipeline {
     }
 
     parameters {
+        string(name: 'PULL_REQUEST_SHA', defaultValue: '', description: 'Pull request sha (used to update status on GitHub)')
         string(name: 'BRANCH_NAME', defaultValue: 'master', description: 'Branch name to use')
         choice(name: 'BUILD_TYPE', choices: ['debug', 'release'], description: 'Build type')
         choice(name: 'FLAVOR_TYPE', choices: ['mock', 'prod'], description: 'Flavor type')
@@ -31,11 +32,11 @@ pipeline {
     }
 
     environment {
+        AGENT = 'qa'
+        GITHUB_API_TOKEN = credentials('github-api-token')
         DEVICE_START_TIMEOUT_IN_SECONDS = '240'
         DEVICE_SHUTDOWN_TIMEOUT_IN_SECONDS = '120'
         PLATFORM = 'android'
-        AGENT = 'qa'
-        PIPELINE_NAME = env.JOB_NAME.replace("${env.PLATFORM}/", '')
         ADB_PORT = '5000'
     }
 
@@ -63,6 +64,18 @@ pipeline {
                         }
                     }
                 }
+                stage('status initiating') {
+                    steps {
+                        script {
+                            setPullRequestStatus(
+                                    params.PULL_REQUEST_SHA,
+                                    constant.pullRequestStatus.pending,
+                                    constant.pullRequestContextStatus.pr,
+                                    "${env.CALLER_BUILD_NUMBER} - Test e2e job initiated: branch:${params.BRANCH_NAME}, language:${params.LANGUAGE}"
+                            )
+                        }
+                    }
+                }
                 stage('clean workspaces') {
                     options {
                         timeout(time: 1, unit: 'MINUTES')
@@ -81,6 +94,12 @@ pipeline {
                 timeout(time: 5, unit: 'MINUTES')
             }
             steps {
+                setPullRequestStatus(
+                        params.PULL_REQUEST_SHA,
+                        constant.pullRequestStatus.pending,
+                        constant.pullRequestContextStatus.pr,
+                        "${env.CALLER_BUILD_NUMBER} - Cloning: source: ${params.BRANCH_NAME}"
+                )
                 dir('project') {
                     git branch: "${params.BRANCH_NAME}", credentialsId: "${env.GIT_CREDENTIAL_ID}", url: "${env.GIT_TUUCHO_QA}"
                 }
@@ -92,6 +111,12 @@ pipeline {
                 timeout(time: 10, unit: 'MINUTES')
             }
             steps {
+                setPullRequestStatus(
+                        params.PULL_REQUEST_SHA,
+                        constant.pullRequestStatus.pending,
+                        constant.pullRequestContextStatus.pr,
+                        "${env.CALLER_BUILD_NUMBER} - Npm install"
+                )
 //                cache(
 //                        maxCacheSize: 250,
 //                        caches: [
@@ -122,6 +147,12 @@ pipeline {
                 }
                 // here the lock could have been took by someone else already... Need to find a way to lock and unlock on demand
                 lock(resource: deviceToLock_Name) {
+                    setPullRequestStatus(
+                            params.PULL_REQUEST_SHA,
+                            constant.pullRequestStatus.pending,
+                            constant.pullRequestContextStatus.pr,
+                            "${env.CALLER_BUILD_NUMBER} - Launching Emulator, Appium and Installing application"
+                    )
                     script {
                         applicationLocation = getApplicationLocation(
                                 env.PLATFORM,
@@ -129,7 +160,7 @@ pipeline {
                                 params.CALLER_JOB_NAME,
                                 params.CALLER_BUILD_NUMBER
                         )
-                        deviceSdkVersion = (deviceToLock_Id =~ /-(\d+)(?=:|$)/)[0][1]
+                        deviceSdkVersion = (deviceToLock_Id =~ /-(\d+)/)[0][1]
                         log.info "deviceSdkVersion ${deviceSdkVersion}"
 
                         node('master') {
@@ -182,6 +213,13 @@ pipeline {
                                     validResponseCodes: '204'
                             )
                         }
+
+                        setPullRequestStatus(
+                                params.PULL_REQUEST_SHA,
+                                constant.pullRequestStatus.pending,
+                                constant.pullRequestContextStatus.pr,
+                                "${env.CALLER_BUILD_NUMBER} - Testing: Good luck ;)"
+                        )
 
                         stage('quick escape tests') {
                             timeout(time: 15, unit: 'MINUTES') {
@@ -248,13 +286,31 @@ pipeline {
                     }
                 }
             }
-        }
-        always {
             script {
                 timeout(time: 2, unit: 'MINUTES') {
                     runGradleTask('allure.generate', 'project')
                     currentBuild.description += """<br><a href="http://localhost/jenkins/report/android-qa-test-e2e/${env.JOB_NAME}/_${env.BUILD_NUMBER}/project/${env.REPORT_TUUCHO_QA_TEST_E2E_FILE}" target="_blank">Report</a>"""
                 }
+            }
+        }
+        success {
+            script {
+                setPullRequestStatus(
+                        params.PULL_REQUEST_SHA,
+                        constant.pullRequestStatus.success,
+                        constant.pullRequestContextStatus.pr,
+                        "${env.CALLER_BUILD_NUMBER} - Succeed: Make sure to read yourself again before to merge ;)"
+                )
+            }
+        }
+        failure {
+            script {
+                setPullRequestStatus(
+                        params.PULL_REQUEST_SHA,
+                        constant.pullRequestStatus.failure,
+                        constant.pullRequestContextStatus.pr,
+                        "${env.CALLER_BUILD_NUMBER} - Failed: Mm, I can't help you, but maybe the logs will... :"
+                )
             }
         }
     }

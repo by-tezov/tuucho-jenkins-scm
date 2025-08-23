@@ -1,6 +1,7 @@
 @groovy.transform.Field
 def label = [
-        testAuto: 'Test Auto'
+        testAuto: 'Test Auto',
+        unitTest: 'Unit Test'
 ]
 
 @groovy.transform.Field
@@ -53,4 +54,17 @@ def commitOption = [
         language            : 'language',
         branchNameQA        : 'branch_name_qa',
         testE2EWaitToSucceed: 'test_e2e_wait_to_succeed'
+]
+
+@groovy.transform.Field
+def pullRequestContextStatus = [
+        pr: 'PR'
+]
+
+@groovy.transform.Field
+def pullRequestStatus = [
+        pending: 'pending',
+        error: 'error',
+        failure: 'failure',
+        success: 'success'
 ]
