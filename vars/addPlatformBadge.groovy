@@ -1,14 +1,14 @@
 def call(
-    String platform
+        String platform
 ) {
     switch (platform) {
-        case 'ios':
-            addBadge(icon: 'symbol-logo-apple plugin-ionicons-api', text: 'ios')
-            break
-        case 'android':
+        case constant.platform.android:
             addBadge(icon: 'symbol-logo-android plugin-ionicons-api', text: 'android')
             break
+        case constant.platform.ios:
+            addBadge(icon: 'symbol-logo-apple plugin-ionicons-api', text: 'ios')
+            break
         default:
-            error("Unknown platform: ${platform}")
+            error("addPlatformBadge: unknown platform: ${platform}")
     }
 }

@@ -1,10 +1,10 @@
 def call(
-    String agentPath,
-    String pipeline,
-    Integer maxSubWorkspaces = env.CLEAN_WORKSPACE_MAX_SUB_WORKSPACES.toInteger()
+        String agent = env.AGENT,
+        String jobName = env.JOB_NAME,
+        Integer maxSubWorkspaces = env.CLEAN_WORKSPACE_MAX_SUB_WORKSPACES.toInteger()
 ) {
     timeout(time: 5, unit: 'MINUTES') {
-        def workspace = "${agentPath}/workspace/${pipeline}"
+        def workspace = "${getWorkspaceFolderPath(agent)}/${jobName}"
         def workspaceTempPreFix = '@tmp'
 
         def workspaces = sh(
