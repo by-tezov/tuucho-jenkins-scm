@@ -60,19 +60,22 @@ pipeline {
                             if (!content[Key.isSourceBranchDeleted]) {
                                 content[Key.author] = jsonPayload.head_commit.author.name
                                 content[Key.commitMessage] = jsonPayload.head_commit.message
-                                def pullRequestResponse = getPullRequestData(
-                                        content[Key.sourceBranch]
-                                )
-                                def pullRequest = [:]
-                                pullRequest[KeyPullRequest.sha] = pullRequestResponse.head.sha
-                                pullRequest[KeyPullRequest.targetBranch] = pullRequestResponse.base.ref
-                                pullRequest[KeyPullRequest.number] = pullRequestResponse.number
-                                pullRequest[KeyPullRequest.state] = pullRequestResponse.state
-                                pullRequest[KeyPullRequest.isDraft] = pullRequestResponse.draft
-                                pullRequest[KeyPullRequest.labels] = pullRequestResponse.labels.collect { it.name }
-                                content[Key.pullRequest] = pullRequest
+                                try {
+                                    def pullRequestResponse = pullRequestResponse = getPullRequestData(
+                                            content[Key.sourceBranch]
+                                    )
+                                    def pullRequest = [:]
+                                    pullRequest[KeyPullRequest.sha] = pullRequestResponse.head.sha
+                                    pullRequest[KeyPullRequest.targetBranch] = pullRequestResponse.base.ref
+                                    pullRequest[KeyPullRequest.number] = pullRequestResponse.number
+                                    pullRequest[KeyPullRequest.state] = pullRequestResponse.state
+                                    pullRequest[KeyPullRequest.isDraft] = pullRequestResponse.draft
+                                    pullRequest[KeyPullRequest.labels] = pullRequestResponse.labels.collect { it.name }
+                                    content[Key.pullRequest] = pullRequest
+                                } catch (Exception ignored) {
+                                    log.info "No pull request found"
+                                }
                             }
-
                             log.info "content: ${content}"
                             if (content[Key.isSourceBranchDeleted]) {
                                 currentBuild.displayName = "#${env.BUILD_NUMBER}"
