@@ -7,6 +7,15 @@ Boolean deviceHasBeenStarted = false
 def applicationLocation = null
 String deviceSdkVersion = ''
 
+def setStatus = { status, message ->
+    setPullRequestStatus(
+            params.PULL_REQUEST_SHA,
+            constant.pullRequestContextStatus.pr,
+            status,
+            "${env.BUILD_NUMBER} - ${message}"
+    )
+}
+
 pipeline {
     agent {
         node {
@@ -67,10 +76,8 @@ pipeline {
                 stage('status initiating') {
                     steps {
                         script {
-                            setPullRequestStatus(
-                                    params.PULL_REQUEST_SHA,
+                            setStatus(
                                     constant.pullRequestStatus.pending,
-                                    constant.pullRequestContextStatus.pr,
                                     "${env.CALLER_BUILD_NUMBER} - Test e2e job initiated: branch:${params.BRANCH_NAME}, language:${params.LANGUAGE}"
                             )
                         }
@@ -94,10 +101,8 @@ pipeline {
                 timeout(time: 5, unit: 'MINUTES')
             }
             steps {
-                setPullRequestStatus(
-                        params.PULL_REQUEST_SHA,
+                setStatus(
                         constant.pullRequestStatus.pending,
-                        constant.pullRequestContextStatus.pr,
                         "${env.CALLER_BUILD_NUMBER} - Cloning: source: ${params.BRANCH_NAME}"
                 )
                 dir('project') {
@@ -111,10 +116,8 @@ pipeline {
                 timeout(time: 10, unit: 'MINUTES')
             }
             steps {
-                setPullRequestStatus(
-                        params.PULL_REQUEST_SHA,
+                setStatus(
                         constant.pullRequestStatus.pending,
-                        constant.pullRequestContextStatus.pr,
                         "${env.CALLER_BUILD_NUMBER} - Npm install"
                 )
 //                cache(
@@ -147,10 +150,8 @@ pipeline {
                 }
                 // here the lock could have been took by someone else already... Need to find a way to lock and unlock on demand
                 lock(resource: deviceToLock_Name) {
-                    setPullRequestStatus(
-                            params.PULL_REQUEST_SHA,
+                    setStatus(
                             constant.pullRequestStatus.pending,
-                            constant.pullRequestContextStatus.pr,
                             "${env.CALLER_BUILD_NUMBER} - Launching Emulator, Appium and Installing application"
                     )
                     script {
@@ -214,10 +215,8 @@ pipeline {
                             )
                         }
 
-                        setPullRequestStatus(
-                                params.PULL_REQUEST_SHA,
+                        setStatus(
                                 constant.pullRequestStatus.pending,
-                                constant.pullRequestContextStatus.pr,
                                 "${env.CALLER_BUILD_NUMBER} - Testing: Good luck ;)"
                         )
 
@@ -295,20 +294,16 @@ pipeline {
         }
         success {
             script {
-                setPullRequestStatus(
-                        params.PULL_REQUEST_SHA,
+                setStatus(
                         constant.pullRequestStatus.success,
-                        constant.pullRequestContextStatus.pr,
                         "${env.CALLER_BUILD_NUMBER} - Succeed: Make sure to read yourself again before to merge ;)"
                 )
             }
         }
         failure {
             script {
-                setPullRequestStatus(
-                        params.PULL_REQUEST_SHA,
+                setStatus(
                         constant.pullRequestStatus.failure,
-                        constant.pullRequestContextStatus.pr,
                         "${env.CALLER_BUILD_NUMBER} - Failed: Mm, I can't help you, but maybe the logs will... :"
                 )
             }

@@ -1,4 +1,4 @@
-@Library('library@master') _
+@Library('library@chore/add-ios-build') _
 
 def setStatus = { status, message ->
     setPullRequestStatus(
@@ -12,15 +12,15 @@ def setStatus = { status, message ->
 pipeline {
     agent {
         node {
-            label 'android-builder'
+            label 'ios-builder'
             customWorkspace "workspace/${env.JOB_NAME}/_${env.BUILD_NUMBER}"
         }
     }
 
     parameters {
         string(name: 'PULL_REQUEST_SHA', defaultValue: '', description: 'Pull request sha (used to update status on GitHub)')
-        string(name: 'SOURCE_BRANCH', defaultValue: '', description: 'Source branch to build')
-        string(name: 'TARGET_BRANCH', defaultValue: '', description: 'Target branch to merge (merge is done only locally, not on remote)')
+        string(name: 'SOURCE_BRANCH', defaultValue: 'chore/minor-stuff', description: 'Source branch to build')
+        string(name: 'TARGET_BRANCH', defaultValue: 'release/0.0.1-alpha10', description: 'Target branch to merge (merge is done only locally, not on remote)')
         choice(name: 'BUILD_TYPE', choices: ['debug', 'release'], description: 'Build type')
         choice(name: 'FLAVOR_TYPE', choices: ['mock', 'prod'], description: 'Flavor type')
         choice(name: 'LANGUAGE', choices: ['en', 'fr'], description: 'Language to use for e2e test')
@@ -32,7 +32,7 @@ pipeline {
     }
 
     environment {
-        AGENT = 'android'
+        AGENT = 'ios'
         GITHUB_API_TOKEN = credentials('github-api-token')
     }
 
@@ -127,9 +127,11 @@ pipeline {
                     )
                 }
                 script {
-                    replaceFlavorType(constant.flavorType.mock)
-                    runGradleTask('allUnitTestsDebug', 'project')
-                    currentBuild.description += """<br><a href="http://localhost/jenkins/report/android-build/${env.JOB_NAME}/_${env.BUILD_NUMBER}/project/${env.REPORT_TUUCHO_UNIT_TEST_FILE}" target="_blank">Tests report</a>"""
+                    sourceEnv {
+                        replaceFlavorType(constant.flavorType.mock)
+                        runGradleTask('allUnitTestsDebug', 'project')
+                        currentBuild.description += """<br><a href="http://localhost/jenkins/report/ios-build/${env.JOB_NAME}/_${env.BUILD_NUMBER}/project/${env.REPORT_TUUCHO_UNIT_TEST_FILE}" target="_blank">Tests report</a>"""
+                    }
                 }
             }
         }
@@ -146,8 +148,10 @@ pipeline {
                     )
                 }
                 script {
-                    runGradleTask('koverHtmlReport', 'project')
-                    currentBuild.description += """<br><a href="http://localhost/jenkins/report/android-build/${env.JOB_NAME}/_${env.BUILD_NUMBER}/project/${env.REPORT_TUUCHO_COVERAGE_FILE}" target="_blank">Coverage report</a>"""
+                    sourceEnv {
+                        runGradleTask('koverHtmlReport', 'project')
+                        currentBuild.description += """<br><a href="http://localhost/jenkins/report/ios-build/${env.JOB_NAME}/_${env.BUILD_NUMBER}/project/${env.REPORT_TUUCHO_COVERAGE_FILE}" target="_blank">Coverage report</a>"""
+                    }
                 }
             }
         }
@@ -167,39 +171,41 @@ pipeline {
                     )
                 }
                 script {
-                    replaceFlavorType(params.FLAVOR_TYPE)
-                    runGradleTask(constant.assembleTask[params.BUILD_TYPE], 'project')
+                    sourceEnv {
+                        replaceFlavorType(params.FLAVOR_TYPE)
+//                        runGradleTask(constant.assembleTask[params.BUILD_TYPE], 'project')
+                    }
                 }
             }
         }
 
-        stage('launch e2e test') {
-            when {
-                expression { params.TEST_E2E }
-            }
-            steps {
-                script {
-                    setStatus(
-                            constant.pullRequestStatus.pending,
-                            "${env.BUILD_NUMBER} - Launch e2e test"
-                    )
-                }
-                script {
-                    build job: 'android/test-e2e', parameters: [
-                            string(name: 'PULL_REQUEST_SHA', value: params.PULL_REQUEST_SHA),
-                            string(name: 'BUILD_TYPE', value: params.BUILD_TYPE),
-                            string(name: 'FLAVOR_TYPE', value: params.FLAVOR_TYPE),
-                            string(name: 'CALLER_JOB_NAME', value: env.JOB_NAME),
-                            string(name: 'CALLER_BUILD_NUMBER', value: env.BUILD_NUMBER),
-                            string(name: 'LANGUAGE', value: params.LANGUAGE),
-                            string(name: 'BRANCH_NAME', value: params.BRANCH_NAME_QA),
-                            string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
-                            string(name: 'COMMIT_MESSAGE', value: params.COMMIT_MESSAGE),
-                            string(name: 'APP_VERSION', value: getMarketingVersion()),
-                    ], wait: params.TEST_E2E_WAIT_TO_SUCCEED
-                }
-            }
-        }
+//        stage('launch e2e test') {
+//            when {
+//                expression { params.TEST_E2E }
+//            }
+//            steps {
+//                script {
+//                    setStatus(
+//                            constant.pullRequestStatus.pending,
+//                            "${env.BUILD_NUMBER} - Launch e2e test"
+//                    )
+//                }
+//                script {
+//                    build job: 'android/test-e2e', parameters: [
+//                            string(name: 'PULL_REQUEST_SHA', value: params.PULL_REQUEST_SHA),
+//                            string(name: 'BUILD_TYPE', value: params.BUILD_TYPE),
+//                            string(name: 'FLAVOR_TYPE', value: params.FLAVOR_TYPE),
+//                            string(name: 'CALLER_JOB_NAME', value: env.JOB_NAME),
+//                            string(name: 'CALLER_BUILD_NUMBER', value: env.BUILD_NUMBER),
+//                            string(name: 'LANGUAGE', value: params.LANGUAGE),
+//                            string(name: 'BRANCH_NAME', value: params.BRANCH_NAME_QA),
+//                            string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
+//                            string(name: 'COMMIT_MESSAGE', value: params.COMMIT_MESSAGE),
+//                            string(name: 'APP_VERSION', value: getMarketingVersion()),
+//                    ], wait: params.TEST_E2E_WAIT_TO_SUCCEED
+//                }
+//            }
+//        }
     }
     post {
         success {
@@ -225,3 +231,4 @@ pipeline {
     }
 
 }
+
