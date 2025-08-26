@@ -1,10 +1,14 @@
 def call(
         String sha,
-        String status,
         String context,
+        String status,
         String description,
         String repositoryFullName = env.GITHUB_TUUCHO_REPOSITORY
 ) {
+    if (!sha) {
+        echo "Skipping GitHub status update because SHA is empty"
+        return
+    }
     def requestBody = """{
         "state": "${status}",
         "context": "${context}",
