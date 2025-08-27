@@ -1,0 +1,3 @@
+def path() {
+    /* nothing yet */
+}

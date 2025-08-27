@@ -1,5 +1,5 @@
-def call(){
-    def libsFile = "${getProjectFolderPath()}/gradle/libs.versions.toml"
+def call() {
+    def libsFile = "${project.path()}/gradle/libs.versions.toml"
     def libsContent = readFile libsFile
     def matcher = libsContent =~ /(?m)^(?!#)\s*versionName\s*=\s*["'](.+)["']\s*$/
     if (!matcher) {

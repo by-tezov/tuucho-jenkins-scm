@@ -1,7 +1,7 @@
 def call(
         String flavor
 ) {
-    def libsFile = "${getProjectFolderPath()}/gradle/libs.versions.toml"
+    def libsFile = "${project.path()}/gradle/libs.versions.toml"
     def libsContent = readFile libsFile
     def matcher = libsContent =~ /(?m)^(?!#)flavor\s*=.*$/
     if (!matcher) {

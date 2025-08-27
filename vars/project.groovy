@@ -1,4 +1,12 @@
-def call(
+def path(
+        String agent = env.AGENT,
+        String jobName = env.JOB_NAME,
+        String buildNumber = env.BUILD_NUMBER
+) {
+    return "${workspace.path(agent)}/${jobName}/_${buildNumber}/project"
+}
+
+def applicationLocation(
         String platform,
         String buildType,
         String jobName,
@@ -15,17 +23,17 @@ def call(
                     environmentToken = 'release'
                     break
                 default:
-                    error("getApplicationLocation: unknown environment: ${buildType}")
+                    error("project.applicationLocation: unknown environment: ${buildType}")
             }
             def ANDROID_BUILD_APP_FILE_PATH = "app/android/build/outputs/apk/${environmentToken}"
             return [
-                    path: "${getProjectFolderPath(platform, jobName, buildNumber)}/${ANDROID_BUILD_APP_FILE_PATH}",
+                    path: "${path(constant.agent.android_builder, jobName, buildNumber)}/${ANDROID_BUILD_APP_FILE_PATH}",
                     file: "android-${buildType}.apk"
             ]
             break
 
         case constant.platform.ios:
-            def (target, variant) = platform.contains('-') ? platform.split('-', 2) : [platform, null]
+            def (_, variant) = platform.contains('-') ? platform.split('-', 2) : [platform, null]
             if (variant == null) {
                 def environmentToken = null
                 switch (buildType) {
@@ -36,25 +44,25 @@ def call(
                         environmentToken = 'Release'
                         break
                     default:
-                        error("getApplicationLocation: unknown environment: ${buildType}")
+                        error("project.applicationLocation: unknown environment: ${buildType}")
                 }
-                def IOS_BUILD_APP_FILE_PATH = "app/ios/build/Build/Products/${environmentToken}-iphoneos"
+                def IOS_BUILD_APP_FILE_PATH = "app/ios/build/Products/${environmentToken}-iphonesimulator"
                 return [
-                        path: "${getProjectFolderPath(target, jobName, buildNumber)}/${IOS_BUILD_APP_FILE_PATH}",
-                        file: "tuucho_ios.app"
+                        path: "${path(constant.agent.ios_builder, jobName, buildNumber)}/${IOS_BUILD_APP_FILE_PATH}",
+                        file: "ios.app"
                 ]
             }
 
             if (variant == 'ipa') {
                 def IOS_ARCHIVE_IPA_FILE_PATH = 'archive'
                 return [
-                        path: "${getProjectFolderPath(target, jobName, buildNumber)}/${IOS_ARCHIVE_IPA_FILE_PATH}",
+                        path: "${path(constant.agent.ios_builder, jobName, buildNumber)}/${IOS_ARCHIVE_IPA_FILE_PATH}",
                         file: "tuucho_ios.ipa"
                 ]
             }
             break
 
         default:
-            error("getApplicationLocation: unknown platform: ${platform}")
+            error("project.applicationLocation: unknown platform: ${platform}")
     }
 }
