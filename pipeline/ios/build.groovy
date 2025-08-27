@@ -3,11 +3,13 @@
 def setStatus = { status, message ->
     setPullRequestStatus(
             params.PULL_REQUEST_SHA,
-            constant.pullRequestContextStatus.pr,
+            constant.pullRequestContextStatus.pr_ios,
             status,
             "${env.BUILD_NUMBER} - ${message}"
     )
 }
+
+String deviceToLock_Id = null
 
 pipeline {
     agent {
@@ -26,56 +28,56 @@ pipeline {
         choice(name: 'LANGUAGE', choices: ['en', 'fr'], description: 'Language to use for e2e test')
         string(name: 'BRANCH_NAME_QA', defaultValue: 'master', description: 'Branch name qa of e2e test')
         booleanParam(name: 'TEST_E2E', defaultValue: false, description: 'Build APK and launch test end to end')
-        booleanParam(name: 'TEST_E2E_WAIT_TO_SUCCEED', defaultValue: true, description: 'Wait end of test e2e')
+        booleanParam(name: 'TEST_E2E_WAIT_TO_SUCCEED', defaultValue: false, description: 'Wait end of test e2e')
+        booleanParam(name: 'TEST_E2E_CLEAR_VISUAL_BASELINE', defaultValue: false, description: 'Clear visual baseline for device selected')
+        booleanParam(name: 'TEST_E2E_UPDATE_VISUAL_BASELINE', defaultValue: false, description: 'Update visual baseline for device selected')
+        choice(name: 'DEVICE_NAME', choices: ['iphone_16-18.5-simulator', ''], description: 'Device name to use')
         string(name: 'COMMIT_AUTHOR', defaultValue: '', description: 'Commit author')
         string(name: 'COMMIT_MESSAGE', defaultValue: '', description: 'Commit message')
     }
 
     environment {
-        AGENT = 'ios'
+        AGENT = 'ios-builder'
         GITHUB_API_TOKEN = credentials('github-api-token')
+        PLATFORM = 'ios'
     }
 
     options {
         parallelsAlwaysFailFast()
+        ansiColor('xterm')
     }
 
     stages {
         stage('init') {
-            parallel {
-                stage('update description') {
-                    steps {
-                        script {
-                            addBuildTypeBadge(params.BUILD_TYPE)
-                            addFlavorTypeBadge(params.FLAVOR_TYPE)
-                            currentBuild.displayName = "#${env.BUILD_NUMBER}"
-                            if (params.COMMIT_AUTHOR != '' && params.COMMIT_MESSAGE != '') {
-                                currentBuild.description = "${params.COMMIT_AUTHOR} - ${params.COMMIT_MESSAGE}<br>"
-                            } else {
-                                currentBuild.description = ''
+            steps {
+                script {
+                    parallel(
+                            'update description': {
+                                log.success "buildType: ${params.BUILD_TYPE}, falvorType: ${params.FLAVOR_TYPE}, sourceBranch: ${params.SOURCE_BRANCH}, targetBranch: ${params.TARGET_BRANCH}"
+                                addBuildTypeBadge(params.BUILD_TYPE)
+                                addFlavorTypeBadge(params.FLAVOR_TYPE)
+                                currentBuild.displayName = "#${env.BUILD_NUMBER}"
+                                if (params.COMMIT_AUTHOR != '' && params.COMMIT_MESSAGE != '') {
+                                    log.info "author: ${params.COMMIT_AUTHOR}, message: ${params.COMMIT_MESSAGE}"
+                                    currentBuild.description = "${params.COMMIT_AUTHOR} - ${params.COMMIT_MESSAGE}<br>"
+                                } else {
+                                    currentBuild.description = ''
+                                }
+                                currentBuild.description += "${params.SOURCE_BRANCH}"
+                                currentBuild.description += "<br>-> ${params.TARGET_BRANCH}"
+                            },
+                            'status pending': {
+                                setStatus(
+                                        constant.pullRequestStatus.pending,
+                                        "${env.BUILD_NUMBER} - Buiding job initiated: build type:${params.BUILD_TYPE}, flavor type:${params.FLAVOR_TYPE}"
+                                )
+                            },
+                            'clean workspaces': {
+                                timeout(time: 1, unit: 'MINUTES') {
+                                    cleanWorkspaces()
+                                }
                             }
-                            currentBuild.description += "${params.SOURCE_BRANCH}"
-                            currentBuild.description += "<br>-> ${params.TARGET_BRANCH}"
-                        }
-                    }
-                }
-                stage('status pending') {
-                    steps {
-                        script {
-                            setStatus(
-                                    constant.pullRequestStatus.pending,
-                                    "${env.BUILD_NUMBER} - Buiding job initiated: build type:${params.BUILD_TYPE}, flavor type:${params.FLAVOR_TYPE}"
-                            )
-                        }
-                    }
-                }
-                stage('clean workspaces') {
-                    options {
-                        timeout(time: 1, unit: 'MINUTES')
-                    }
-                    steps {
-                        script { cleanWorkspaces() }
-                    }
+                    )
                 }
             }
         }
@@ -102,7 +104,7 @@ pipeline {
                                 script: "git rev-list --count ${params.TARGET_BRANCH}..${params.SOURCE_BRANCH}",
                                 returnStdout: true
                         ).trim()
-                        log.info "************ Squash and Merge ${N} commits from ${params.SOURCE_BRANCH} into ${params.TARGET_BRANCH} ************"
+                        log.info "Squash and Merge ${N} commits from ${params.SOURCE_BRANCH} into ${params.TARGET_BRANCH}"
                         sh """
                             git config --global user.email "tezov.app@gmail.com"
                             git config --global user.name "tezov.jenkins"
@@ -115,42 +117,23 @@ pipeline {
             }
         }
 
-        stage('unit test') {
+        stage('bundle install') {
             options {
                 timeout(time: 15, unit: 'MINUTES')
             }
-            steps {
-                script {
-                    setStatus(
-                            constant.pullRequestStatus.pending,
-                            "${env.BUILD_NUMBER} - Unit Testing: Finger crossed..."
-                    )
-                }
-                script {
-                    sourceEnv {
-                        replaceFlavorType(constant.flavorType.mock)
-                        runGradleTask('allUnitTestsDebug', 'project')
-                        currentBuild.description += """<br><a href="http://localhost/jenkins/report/ios-build/${env.JOB_NAME}/_${env.BUILD_NUMBER}/project/${env.REPORT_TUUCHO_UNIT_TEST_FILE}" target="_blank">Tests report</a>"""
-                    }
-                }
-            }
-        }
-
-        stage('coverage') {
-            options {
-                timeout(time: 2, unit: 'MINUTES')
+            when {
+                expression { params.TEST_E2E }
             }
             steps {
                 script {
                     setStatus(
                             constant.pullRequestStatus.pending,
-                            "${env.BUILD_NUMBER} - Coverage reporting"
+                            "${env.BUILD_NUMBER} - Bundle install"
                     )
                 }
                 script {
                     sourceEnv {
-                        runGradleTask('koverHtmlReport', 'project')
-                        currentBuild.description += """<br><a href="http://localhost/jenkins/report/ios-build/${env.JOB_NAME}/_${env.BUILD_NUMBER}/project/${env.REPORT_TUUCHO_COVERAGE_FILE}" target="_blank">Coverage report</a>"""
+                        runGradleTask(':app:ios:bundleInstall', 'project')
                     }
                 }
             }
@@ -171,41 +154,63 @@ pipeline {
                     )
                 }
                 script {
-                    sourceEnv {
-                        replaceFlavorType(params.FLAVOR_TYPE)
-//                        runGradleTask(constant.assembleTask[params.BUILD_TYPE], 'project')
+                    if (params.DEVICE_NAME) {
+                        lock(resource: params.DEVICE_NAME, variable: 'LOCKED_RESOURCE') {
+                            deviceToLock_Id = env.LOCKED_RESOURCE0_DEVICE_NAME_ID
+                        }
+                    } else {
+                        lock(label: "${env.PLATFORM}-simulator", quantity: 1, variable: 'LOCKED_RESOURCE') {
+                            deviceToLock_Id = env.LOCKED_RESOURCE0_DEVICE_NAME_ID
+                        }
+                    }
+                    log.info "pipeline will use device ${deviceToLock_Id}"
+                }
+                //TODO: here the lock could have been took by someone else already... Need to find a way to lock and unlock on demand
+
+                lock(resource: deviceToLock_Id) {
+                    script {
+                        sourceEnv {
+                            replaceFlavorType(params.FLAVOR_TYPE)
+                            def arguments = [:]
+                            arguments['device'] = deviceToLock_Id
+                            runGradleTask(":app:ios:${constant.assembleTask[params.BUILD_TYPE]}", 'project', arguments)
+                            //TODO, use agent-repository to store apk and update getApplicationPath
+                        }
                     }
                 }
             }
         }
 
-//        stage('launch e2e test') {
-//            when {
-//                expression { params.TEST_E2E }
-//            }
-//            steps {
-//                script {
-//                    setStatus(
-//                            constant.pullRequestStatus.pending,
-//                            "${env.BUILD_NUMBER} - Launch e2e test"
-//                    )
-//                }
-//                script {
-//                    build job: 'android/test-e2e', parameters: [
-//                            string(name: 'PULL_REQUEST_SHA', value: params.PULL_REQUEST_SHA),
-//                            string(name: 'BUILD_TYPE', value: params.BUILD_TYPE),
-//                            string(name: 'FLAVOR_TYPE', value: params.FLAVOR_TYPE),
-//                            string(name: 'CALLER_JOB_NAME', value: env.JOB_NAME),
-//                            string(name: 'CALLER_BUILD_NUMBER', value: env.BUILD_NUMBER),
-//                            string(name: 'LANGUAGE', value: params.LANGUAGE),
-//                            string(name: 'BRANCH_NAME', value: params.BRANCH_NAME_QA),
-//                            string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
-//                            string(name: 'COMMIT_MESSAGE', value: params.COMMIT_MESSAGE),
-//                            string(name: 'APP_VERSION', value: getMarketingVersion()),
-//                    ], wait: params.TEST_E2E_WAIT_TO_SUCCEED
-//                }
-//            }
-//        }
+        stage('launch e2e test') {
+            when {
+                expression { params.TEST_E2E }
+            }
+            steps {
+                script {
+                    setStatus(
+                            constant.pullRequestStatus.pending,
+                            "${env.BUILD_NUMBER} - Launch e2e test"
+                    )
+                }
+                script {
+                    build job: 'ios/test-e2e', parameters: [
+                            string(name: 'PULL_REQUEST_SHA', value: params.PULL_REQUEST_SHA),
+                            string(name: 'BUILD_TYPE', value: params.BUILD_TYPE),
+                            string(name: 'FLAVOR_TYPE', value: params.FLAVOR_TYPE),
+                            string(name: 'CALLER_JOB_NAME', value: env.JOB_NAME),
+                            string(name: 'CALLER_BUILD_NUMBER', value: env.BUILD_NUMBER),
+                            string(name: 'LANGUAGE', value: params.LANGUAGE),
+                            string(name: 'BRANCH_NAME', value: params.BRANCH_NAME_QA),
+                            string(name: 'APP_VERSION', value: getMarketingVersion()),
+                            booleanParam(name: 'CLEAR_VISUAL_BASELINE', value: params.TEST_E2E_CLEAR_VISUAL_BASELINE),
+                            booleanParam(name: 'UPDATE_VISUAL_BASELINE', value: params.TEST_E2E_UPDATE_VISUAL_BASELINE),
+                            string(name: 'DEVICE_NAME', value: deviceToLock_Id),
+                            string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
+                            string(name: 'COMMIT_MESSAGE', value: params.COMMIT_MESSAGE),
+                    ], wait: params.TEST_E2E_WAIT_TO_SUCCEED
+                }
+            }
+        }
     }
     post {
         success {

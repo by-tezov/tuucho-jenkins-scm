@@ -1,9 +1,9 @@
-@Library('library@master') _
+@Library('library@release/0.0.1-alpha10') _
 
 def setStatus = { status, message ->
     setPullRequestStatus(
             params.PULL_REQUEST_SHA,
-            constant.pullRequestContextStatus.pr,
+            constant.pullRequestContextStatus.pr_an,
             status,
             "${env.BUILD_NUMBER} - ${message}"
     )
@@ -26,56 +26,55 @@ pipeline {
         choice(name: 'LANGUAGE', choices: ['en', 'fr'], description: 'Language to use for e2e test')
         string(name: 'BRANCH_NAME_QA', defaultValue: 'master', description: 'Branch name qa of e2e test')
         booleanParam(name: 'TEST_E2E', defaultValue: false, description: 'Build APK and launch test end to end')
-        booleanParam(name: 'TEST_E2E_WAIT_TO_SUCCEED', defaultValue: true, description: 'Wait end of test e2e')
+        booleanParam(name: 'TEST_E2E_WAIT_TO_SUCCEED', defaultValue: false, description: 'Wait end of test e2e')
+        booleanParam(name: 'TEST_E2E_CLEAR_VISUAL_BASELINE', defaultValue: false, description: 'Clear visual baseline for device selected')
+        booleanParam(name: 'TEST_E2E_UPDATE_VISUAL_BASELINE', defaultValue: false, description: 'Update visual baseline for device selected')
+        choice(name: 'DEVICE_NAME', choices: ['android-36-simulator-fluxbox', 'android-36-simulator-standalone',''], description: 'Device name to use')
         string(name: 'COMMIT_AUTHOR', defaultValue: '', description: 'Commit author')
         string(name: 'COMMIT_MESSAGE', defaultValue: '', description: 'Commit message')
     }
 
     environment {
-        AGENT = 'android'
+        AGENT = 'android-builder'
         GITHUB_API_TOKEN = credentials('github-api-token')
     }
 
     options {
         parallelsAlwaysFailFast()
+        ansiColor('xterm')
     }
 
     stages {
         stage('init') {
-            parallel {
-                stage('update description') {
-                    steps {
-                        script {
-                            addBuildTypeBadge(params.BUILD_TYPE)
-                            addFlavorTypeBadge(params.FLAVOR_TYPE)
-                            currentBuild.displayName = "#${env.BUILD_NUMBER}"
-                            if (params.COMMIT_AUTHOR != '' && params.COMMIT_MESSAGE != '') {
-                                currentBuild.description = "${params.COMMIT_AUTHOR} - ${params.COMMIT_MESSAGE}<br>"
-                            } else {
-                                currentBuild.description = ''
+            steps {
+                script {
+                    parallel(
+                            'update description': {
+                                log.success "buildType: ${params.BUILD_TYPE}, falvorType: ${params.FLAVOR_TYPE}, sourceBranch: ${params.SOURCE_BRANCH}, targetBranch: ${params.TARGET_BRANCH}"
+                                addBuildTypeBadge(params.BUILD_TYPE)
+                                addFlavorTypeBadge(params.FLAVOR_TYPE)
+                                currentBuild.displayName = "#${env.BUILD_NUMBER}"
+                                if (params.COMMIT_AUTHOR != '' && params.COMMIT_MESSAGE != '') {
+                                    log.info "author: ${params.COMMIT_AUTHOR}, message: ${params.COMMIT_MESSAGE}"
+                                    currentBuild.description = "${params.COMMIT_AUTHOR} - ${params.COMMIT_MESSAGE}<br>"
+                                } else {
+                                    currentBuild.description = ''
+                                }
+                                currentBuild.description += "${params.SOURCE_BRANCH}"
+                                currentBuild.description += "<br>-> ${params.TARGET_BRANCH}"
+                            },
+                            'status pending': {
+                                setStatus(
+                                        constant.pullRequestStatus.pending,
+                                        "${env.BUILD_NUMBER} - Buiding job initiated: build type:${params.BUILD_TYPE}, flavor type:${params.FLAVOR_TYPE}"
+                                )
+                            },
+                            'clean workspaces': {
+                                timeout(time: 1, unit: 'MINUTES') {
+                                    cleanWorkspaces()
+                                }
                             }
-                            currentBuild.description += "${params.SOURCE_BRANCH}"
-                            currentBuild.description += "<br>-> ${params.TARGET_BRANCH}"
-                        }
-                    }
-                }
-                stage('status pending') {
-                    steps {
-                        script {
-                            setStatus(
-                                    constant.pullRequestStatus.pending,
-                                    "${env.BUILD_NUMBER} - Buiding job initiated: build type:${params.BUILD_TYPE}, flavor type:${params.FLAVOR_TYPE}"
-                            )
-                        }
-                    }
-                }
-                stage('clean workspaces') {
-                    options {
-                        timeout(time: 1, unit: 'MINUTES')
-                    }
-                    steps {
-                        script { cleanWorkspaces() }
-                    }
+                    )
                 }
             }
         }
@@ -102,7 +101,7 @@ pipeline {
                                 script: "git rev-list --count ${params.TARGET_BRANCH}..${params.SOURCE_BRANCH}",
                                 returnStdout: true
                         ).trim()
-                        log.info "************ Squash and Merge ${N} commits from ${params.SOURCE_BRANCH} into ${params.TARGET_BRANCH} ************"
+                        log.info "Squash and Merge ${N} commits from ${params.SOURCE_BRANCH} into ${params.TARGET_BRANCH}"
                         sh """
                             git config --global user.email "tezov.app@gmail.com"
                             git config --global user.name "tezov.jenkins"
@@ -129,6 +128,7 @@ pipeline {
                 script {
                     replaceFlavorType(constant.flavorType.mock)
                     runGradleTask('allUnitTestsDebug', 'project')
+                    //TODO, use agent-repository to store report and update nginx
                     currentBuild.description += """<br><a href="http://localhost/jenkins/report/android-build/${env.JOB_NAME}/_${env.BUILD_NUMBER}/project/${env.REPORT_TUUCHO_UNIT_TEST_FILE}" target="_blank">Tests report</a>"""
                 }
             }
@@ -147,6 +147,7 @@ pipeline {
                 }
                 script {
                     runGradleTask('koverHtmlReport', 'project')
+                    //TODO, use agent-repository to store report and update nginx
                     currentBuild.description += """<br><a href="http://localhost/jenkins/report/android-build/${env.JOB_NAME}/_${env.BUILD_NUMBER}/project/${env.REPORT_TUUCHO_COVERAGE_FILE}" target="_blank">Coverage report</a>"""
                 }
             }
@@ -168,7 +169,8 @@ pipeline {
                 }
                 script {
                     replaceFlavorType(params.FLAVOR_TYPE)
-                    runGradleTask(constant.assembleTask[params.BUILD_TYPE], 'project')
+                    runGradleTask(":app:android:${constant.assembleTask[params.BUILD_TYPE]}", 'project')
+                    //TODO, use agent-repository to store apk and update getApplicationPath
                 }
             }
         }
@@ -193,9 +195,12 @@ pipeline {
                             string(name: 'CALLER_BUILD_NUMBER', value: env.BUILD_NUMBER),
                             string(name: 'LANGUAGE', value: params.LANGUAGE),
                             string(name: 'BRANCH_NAME', value: params.BRANCH_NAME_QA),
+                            string(name: 'APP_VERSION', value: getMarketingVersion()),
+                            booleanParam(name: 'CLEAR_VISUAL_BASELINE', value: params.TEST_E2E_CLEAR_VISUAL_BASELINE),
+                            booleanParam(name: 'UPDATE_VISUAL_BASELINE', value: params.TEST_E2E_UPDATE_VISUAL_BASELINE),
+                            string(name: 'DEVICE_NAME', value: params.DEVICE_NAME),
                             string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
                             string(name: 'COMMIT_MESSAGE', value: params.COMMIT_MESSAGE),
-                            string(name: 'APP_VERSION', value: getMarketingVersion()),
                     ], wait: params.TEST_E2E_WAIT_TO_SUCCEED
                 }
             }
