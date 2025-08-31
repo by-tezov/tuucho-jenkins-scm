@@ -63,7 +63,6 @@ pipeline {
                                 addPlatformBadge(env.PLATFORM)
                                 addBuildTypeBadge(params.BUILD_TYPE)
                                 addFlavorTypeBadge(params.FLAVOR_TYPE)
-                                // TODO: CALLER_Job_NAME icon
                                 currentBuild.displayName = "#${env.BUILD_NUMBER}-${params.CALLER_BUILD_NUMBER}"
                                 if (params.COMMIT_AUTHOR != '' && params.COMMIT_MESSAGE != '') {
                                     log.info "author: ${params.COMMIT_AUTHOR}, message: ${params.COMMIT_MESSAGE}"
@@ -80,9 +79,7 @@ pipeline {
                                 )
                             },
                             'clean workspaces': {
-                                timeout(time: 1, unit: 'MINUTES') {
-                                    cleanWorkspaces()
-                                }
+                                workspace.clean()
                             }
                     )
                 }
@@ -117,18 +114,11 @@ pipeline {
                             "${env.CALLER_BUILD_NUMBER} - Npm install"
                     )
                 }
-                cache(
-                        maxCacheSize: 250,
-                        caches: [
-                                arbitraryFileCache(
-                                        path: 'project/node_modules',
-                                        cacheValidityDecidingFile: 'project/package-lock.json'
-                                )
-                        ]) {
-                    script {
-                        sourceEnv {
-                            runGradleTask('npm.install', 'project')
-                        }
+                script {
+                    sourceEnv {
+                        repository.restoreCache('node_modules', 'package-lock.json')
+                        runGradleTask('npm.install', 'project')
+                        repository.storeCache('node_modules', 'package-lock.json')
                     }
                 }
             }
@@ -151,7 +141,7 @@ pipeline {
                     }
                     log.info "pipeline will use device ${deviceToLock_Id}"
                 }
-                //TODO: here the lock could have been took by someone else already... Need to find a way to lock and unlock on demand
+                //TODO: here the lock could have been took by someone else already... Need to find a way to lock and unlock on demand without dsl block
 
                 lock(resource: deviceToLock_Id) {
                     script {
@@ -159,26 +149,29 @@ pipeline {
                                 constant.pullRequestStatus.pending,
                                 "${env.CALLER_BUILD_NUMBER} - Launching Simulator, Appium and prepare visual baseline"
                         )
-                        parallel {
-                            stage('start appium') {
-                                timeout(time: 2, unit: 'MINUTES') {
-                                    appiumHasBeenStarted = true
-                                    sourceEnv {
-                                        runGradleTask('appium.start', 'project')
+                        parallel(
+                                'start appium': {
+                                    stage('start appium') {
+                                        timeout(time: 2, unit: 'MINUTES') {
+                                            appiumHasBeenStarted = true
+                                            sourceEnv {
+                                                runGradleTask('appium.start', 'project')
+                                            }
+                                        }
                                     }
-                                }
-                            }
-                            stage('start simulator') {
-                                timeout(time: 2, unit: 'MINUTES') {
-                                    deviceHasBeenStarted = true
-                                    sourceEnv {
-                                        def arguments = [:]
-                                        arguments['deviceName'] = deviceToLock_Id
-                                        runGradleTask('simulator.start', 'project', arguments)
+                                },
+                                'start simulator': {
+                                    stage('start appium') {
+                                        timeout(time: 2, unit: 'MINUTES') {
+                                            deviceHasBeenStarted = true
+                                            sourceEnv {
+                                                def arguments = [:]
+                                                arguments['deviceName'] = deviceToLock_Id
+                                                runGradleTask('simulator.start', 'project', arguments)
+                                            }
+                                        }
                                     }
-                                }
-                            }
-                        }
+                                })
 
                         setStatus(
                                 constant.pullRequestStatus.pending,
@@ -186,9 +179,10 @@ pipeline {
                         )
                         def applicationLocation = project.applicationLocation(env.PLATFORM, params.BUILD_TYPE, params.CALLER_JOB_NAME, params.CALLER_BUILD_NUMBER)
                         def deviceOsVersion = (deviceToLock_Id =~ /-([^ -]+)-/)[0][1]
-                        log.info "deviceSdkVersion ${deviceSdkVersion}"
+                        log.info "deviceOsVersion ${deviceOsVersion}"
 
                         log.info "visual baseline cache skipRestore: ${params.CLEAR_VISUAL_BASELINE}, skipSave: ${!params.UPDATE_VISUAL_BASELINE}"
+
                         cache(
                                 maxCacheSize: 500,
                                 skipRestore: params.CLEAR_VISUAL_BASELINE,
@@ -199,6 +193,11 @@ pipeline {
                                                 cacheValidityDecidingFile: 'project/visual-testing/baseline/baseline.lock'
                                         )
                                 ]) {
+
+//                            if(!params.CLEAR_VISUAL_BASELINE) {
+//                                repository.restoreCache('visual-testing/baseline', 'visual-testing/baseline/baseline.lock')
+//                            }
+
                             stage('quick escape tests') {
                                 timeout(time: 15, unit: 'MINUTES') {
                                     def arguments = [:]
@@ -206,13 +205,15 @@ pipeline {
                                     arguments['platform'] = env.PLATFORM
                                     arguments['buildType'] = params.BUILD_TYPE
                                     arguments['flavorType'] = params.FLAVOR_TYPE
-                                    arguments['deviceName'] = "${deviceToLock_Id}:${env.ADB_PORT}"
+                                    arguments['deviceName'] = "${deviceToLock_Id}"
                                     arguments['deviceOsVersion'] = deviceOsVersion
                                     arguments['appVersion'] = params.APP_VERSION
                                     arguments['appPath'] = applicationLocation.path
                                     arguments['appFile'] = applicationLocation.file
                                     arguments['tags'] = params.QUICK_ESCAPE_TEST_TAGS
-                                    runGradleTask('test', 'project', arguments)
+                                    sourceEnv {
+                                        runGradleTask('test', 'project', arguments)
+                                    }
                                 }
                             }
 
@@ -224,16 +225,23 @@ pipeline {
                                         arguments['platform'] = env.PLATFORM
                                         arguments['buildType'] = params.BUILD_TYPE
                                         arguments['flavorType'] = params.FLAVOR_TYPE
-                                        arguments['deviceName'] = "${deviceToLock_Id}:${env.ADB_PORT}"
+                                        arguments['deviceName'] = "${deviceToLock_Id}"
                                         arguments['deviceOsVersion'] = deviceOsVersion
                                         arguments['appVersion'] = params.APP_VERSION
                                         arguments['appPath'] = applicationLocation.path
                                         arguments['appFile'] = applicationLocation.file
                                         arguments['tags'] = params.TESTS_TAGS
-                                        runGradleTask('test', 'project', arguments)
+                                        sourceEnv {
+                                            runGradleTask('test', 'project', arguments)
+                                        }
                                     }
                                 }
                             }
+
+//                            if(params.UPDATE_VISUAL_BASELINE) {
+//                                repository.storeCache('visual-testing/baseline', 'visual-testing/baseline/baseline.lock')
+//                            }
+
                         }
                     }
                 }
@@ -263,7 +271,7 @@ pipeline {
                             'stop simulator': {
                                 // could be an issue because the lock has already been released
                                 // and maybe another pipeline has relocked it for itself.
-                                stage('stop appium') {
+                                stage('stop simulator') {
                                     if (deviceHasBeenStarted) {
                                         timeout(time: 2, unit: 'MINUTES') {
                                             sourceEnv {
@@ -281,9 +289,11 @@ pipeline {
             }
             script {
                 timeout(time: 2, unit: 'MINUTES') {
-                    runGradleTask('allure.generate', 'project')
-                    //TODO, use agent-repository to store report and update nginx
-                    currentBuild.description += """<br><a href="http://localhost/jenkins/report/android-qa-test-e2e/${env.JOB_NAME}/_${env.BUILD_NUMBER}/project/${env.REPORT_TUUCHO_QA_TEST_E2E_FILE}" target="_blank">Report</a>"""
+                    sourceEnv {
+                        runGradleTask('allure.generate', 'project')
+                    }
+                    repository.storeReport('allure-report')
+                    currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/allure-report/index.html" target="_blank">Report</a>"""
                 }
             }
         }

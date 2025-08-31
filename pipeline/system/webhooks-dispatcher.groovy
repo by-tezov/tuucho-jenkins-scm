@@ -1,4 +1,4 @@
-@Library('library@chore/add-ios-build') _
+@Library('library@release/0.0.1-alpha10') _
 
 import com.tezov.jenkins.webhook.WebhookContent
 import com.tezov.jenkins.webhook.enums.Key

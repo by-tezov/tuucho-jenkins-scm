@@ -37,6 +37,7 @@ def repository = [
 
 @groovy.transform.Field
 def agent = [
+        repository     : 'agent-repository',
         android_builder: 'android-builder',
         android_qa     : 'android-qa',
         ios_builder    : 'ios-builder',

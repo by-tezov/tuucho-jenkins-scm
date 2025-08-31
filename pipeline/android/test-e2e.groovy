@@ -1,4 +1,4 @@
-@Library('library@release/0.0.1-alpha10') _
+@Library('library@chore/add-ios-build') _
 
 String deviceToLock_Id = null
 Boolean appiumHasBeenStarted = false
@@ -64,7 +64,6 @@ pipeline {
                                 addPlatformBadge(env.PLATFORM)
                                 addBuildTypeBadge(params.BUILD_TYPE)
                                 addFlavorTypeBadge(params.FLAVOR_TYPE)
-                                // TODO: CALLER_Job_NAME icon
                                 currentBuild.displayName = "#${env.BUILD_NUMBER}-${params.CALLER_BUILD_NUMBER}"
                                 if (params.COMMIT_AUTHOR != '' && params.COMMIT_MESSAGE != '') {
                                     log.info "author: ${params.COMMIT_AUTHOR}, message: ${params.COMMIT_MESSAGE}"
@@ -81,9 +80,7 @@ pipeline {
                                 )
                             },
                             'clean workspaces': {
-                                timeout(time: 1, unit: 'MINUTES') {
-                                    cleanWorkspaces()
-                                }
+                                workspace.clean()
                             }
                     )
                 }
@@ -118,17 +115,10 @@ pipeline {
                             "${env.CALLER_BUILD_NUMBER} - Npm install"
                     )
                 }
-                cache(
-                        maxCacheSize: 250,
-                        caches: [
-                                arbitraryFileCache(
-                                        path: 'project/node_modules',
-                                        cacheValidityDecidingFile: 'project/package-lock.json'
-                                )
-                        ]) {
-                    script {
-                        runGradleTask('npm.install', 'project')
-                    }
+                script {
+                    repository.restoreCache('node_modules', 'package-lock.json')
+                    runGradleTask('npm.install', 'project')
+                    repository.storeCache('node_modules', 'package-lock.json')
                 }
             }
         }
@@ -150,7 +140,7 @@ pipeline {
                     }
                     log.info "pipeline will use device ${deviceToLock_Id}"
                 }
-                //TODO: here the lock could have been took by someone else already... Need to find a way to lock and unlock on demand
+                //TODO: here the lock could have been took by someone else already... Need to find a way to lock and unlock on demand without dsl block
 
                 lock(resource: deviceToLock_Id) {
                     script {
@@ -193,8 +183,7 @@ pipeline {
                                             }
                                         }
                                     }
-                                }
-                        )
+                                })
 
                         setStatus(
                                 constant.pullRequestStatus.pending,
@@ -229,6 +218,7 @@ pipeline {
                         log.info "deviceSdkVersion ${deviceSdkVersion}"
 
                         log.info "visual baseline cache skipRestore: ${params.CLEAR_VISUAL_BASELINE}, skipSave: ${!params.UPDATE_VISUAL_BASELINE}"
+
                         cache(
                                 maxCacheSize: 500,
                                 skipRestore: params.CLEAR_VISUAL_BASELINE,
@@ -239,6 +229,11 @@ pipeline {
                                                 cacheValidityDecidingFile: 'project/visual-testing/baseline/baseline.lock'
                                         )
                                 ]) {
+
+//                            if(!params.CLEAR_VISUAL_BASELINE) {
+//                                repository.restoreCache('visual-testing/baseline', 'visual-testing/baseline/baseline.lock')
+//                            }
+
                             stage('quick escape tests') {
                                 timeout(time: 15, unit: 'MINUTES') {
                                     def arguments = [:]
@@ -274,6 +269,11 @@ pipeline {
                                     }
                                 }
                             }
+
+//                            if(params.UPDATE_VISUAL_BASELINE) {
+//                                repository.storeCache('visual-testing/baseline', 'visual-testing/baseline/baseline.lock')
+//                            }
+
                         }
                     }
                 }
@@ -318,8 +318,8 @@ pipeline {
             script {
                 timeout(time: 2, unit: 'MINUTES') {
                     runGradleTask('allure.generate', 'project')
-                    //TODO, use agent-repository to store report and update nginx
-                    currentBuild.description += """<br><a href="http://localhost/jenkins/report/android-qa-test-e2e/${env.JOB_NAME}/_${env.BUILD_NUMBER}/project/${env.REPORT_TUUCHO_QA_TEST_E2E_FILE}" target="_blank">Report</a>"""
+                    repository.storeReport('allure-report')
+                    currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/allure-report/index.html" target="_blank">Report</a>"""
                 }
             }
         }
