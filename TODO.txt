@@ -1,5 +1,7 @@
-- build / test 2e2, update to allow launch without SHA for statuses
 
+- TODO jenkins plugin list
+- TODO task cache clean (or max size)
+- TODO task report clean (or max size)
 
 // later
 - add let's encrypt

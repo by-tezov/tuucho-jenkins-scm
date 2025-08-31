@@ -26,7 +26,7 @@ pipeline {
         choice(name: 'BUILD_TYPE', choices: ['debug', 'release'], description: 'Build type')
         choice(name: 'FLAVOR_TYPE', choices: ['mock', 'prod'], description: 'Flavor type')
         choice(name: 'LANGUAGE', choices: ['en', 'fr'], description: 'Language to use for e2e test')
-        string(name: 'BRANCH_NAME_QA', defaultValue: 'master', description: 'Branch name qa of e2e test')
+        string(name: 'BRANCH_NAME_QA', defaultValue: 'fix/npm-ssl-error', description: 'Branch name qa of e2e test')
         booleanParam(name: 'TEST_E2E', defaultValue: false, description: 'Build APK and launch test end to end')
         booleanParam(name: 'TEST_E2E_WAIT_TO_SUCCEED', defaultValue: false, description: 'Wait end of test e2e')
         booleanParam(name: 'TEST_E2E_CLEAR_VISUAL_BASELINE', defaultValue: false, description: 'Clear visual baseline for device selected')
@@ -73,9 +73,7 @@ pipeline {
                                 )
                             },
                             'clean workspaces': {
-                                timeout(time: 1, unit: 'MINUTES') {
-                                    cleanWorkspaces()
-                                }
+                                workspace.clean()
                             }
                     )
                 }
@@ -165,7 +163,7 @@ pipeline {
                     }
                     log.info "pipeline will use device ${deviceToLock_Id}"
                 }
-                //TODO: here the lock could have been took by someone else already... Need to find a way to lock and unlock on demand
+                //TODO: here the lock could have been took by someone else already... Need to find a way to lock and unlock on demand without dsl block
 
                 lock(resource: deviceToLock_Id) {
                     script {

@@ -1,4 +1,4 @@
-@Library('library@release/0.0.1-alpha10') _
+@Library('library@chore/add-ios-build') _
 
 def setStatus = { status, message ->
     setPullRequestStatus(
@@ -19,17 +19,17 @@ pipeline {
 
     parameters {
         string(name: 'PULL_REQUEST_SHA', defaultValue: '', description: 'Pull request sha (used to update status on GitHub)')
-        string(name: 'SOURCE_BRANCH', defaultValue: '', description: 'Source branch to build')
-        string(name: 'TARGET_BRANCH', defaultValue: '', description: 'Target branch to merge (merge is done only locally, not on remote)')
+        string(name: 'SOURCE_BRANCH', defaultValue: 'chore/minor-stuff', description: 'Source branch to build')
+        string(name: 'TARGET_BRANCH', defaultValue: 'release/0.0.1-alpha10', description: 'Target branch to merge (merge is done only locally, not on remote)')
         choice(name: 'BUILD_TYPE', choices: ['debug', 'release'], description: 'Build type')
         choice(name: 'FLAVOR_TYPE', choices: ['mock', 'prod'], description: 'Flavor type')
         choice(name: 'LANGUAGE', choices: ['en', 'fr'], description: 'Language to use for e2e test')
-        string(name: 'BRANCH_NAME_QA', defaultValue: 'master', description: 'Branch name qa of e2e test')
+        string(name: 'BRANCH_NAME_QA', defaultValue: 'fix/npm-ssl-error', description: 'Branch name qa of e2e test')
         booleanParam(name: 'TEST_E2E', defaultValue: false, description: 'Build APK and launch test end to end')
         booleanParam(name: 'TEST_E2E_WAIT_TO_SUCCEED', defaultValue: false, description: 'Wait end of test e2e')
         booleanParam(name: 'TEST_E2E_CLEAR_VISUAL_BASELINE', defaultValue: false, description: 'Clear visual baseline for device selected')
         booleanParam(name: 'TEST_E2E_UPDATE_VISUAL_BASELINE', defaultValue: false, description: 'Update visual baseline for device selected')
-        choice(name: 'DEVICE_NAME', choices: ['android-36-simulator-fluxbox', 'android-36-simulator-standalone',''], description: 'Device name to use')
+        choice(name: 'DEVICE_NAME', choices: ['android-36-simulator-fluxbox', 'android-36-simulator-standalone', ''], description: 'Device name to use')
         string(name: 'COMMIT_AUTHOR', defaultValue: '', description: 'Commit author')
         string(name: 'COMMIT_MESSAGE', defaultValue: '', description: 'Commit message')
     }
@@ -70,9 +70,7 @@ pipeline {
                                 )
                             },
                             'clean workspaces': {
-                                timeout(time: 1, unit: 'MINUTES') {
-                                    cleanWorkspaces()
-                                }
+                                workspace.clean()
                             }
                     )
                 }
@@ -128,8 +126,8 @@ pipeline {
                 script {
                     replaceFlavorType(constant.flavorType.mock)
                     runGradleTask('allUnitTestsDebug', 'project')
-                    //TODO, use agent-repository to store report and update nginx
-                    currentBuild.description += """<br><a href="http://localhost/jenkins/report/android-build/${env.JOB_NAME}/_${env.BUILD_NUMBER}/project/${env.REPORT_TUUCHO_UNIT_TEST_FILE}" target="_blank">Tests report</a>"""
+                    repository.storeReport('build/reports/unit-tests')
+                    currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/build/reports/unit-tests/index.html" target="_blank">Tests report</a>"""
                 }
             }
         }
@@ -147,8 +145,8 @@ pipeline {
                 }
                 script {
                     runGradleTask('koverHtmlReport', 'project')
-                    //TODO, use agent-repository to store report and update nginx
-                    currentBuild.description += """<br><a href="http://localhost/jenkins/report/android-build/${env.JOB_NAME}/_${env.BUILD_NUMBER}/project/${env.REPORT_TUUCHO_COVERAGE_FILE}" target="_blank">Coverage report</a>"""
+                    repository.storeReport('build/reports/kover/html')
+                    currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/build/reports/kover/html/index.html" target="_blank">Tests report</a>"""
                 }
             }
         }

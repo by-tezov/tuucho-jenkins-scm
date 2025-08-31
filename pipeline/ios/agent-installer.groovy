@@ -32,33 +32,30 @@ pipeline {
                 }
             }
         }
-        stage('Install Agents') {
-            parallel {
-                stage('Agent Builder Install') {
-                    when {
-                        expression { params.INSTALL_BUILDER }
-                    }
-                    steps {
-                        script {
-                            node('ios-builder') {
-                                unstash 'mac-agent-builder-installer'
-                                sh "bash helper/mac-agent-builder-installer.bash"
-                            }
-                        }
+
+        stage('Agent Builder Install') {
+            when {
+                expression { params.INSTALL_BUILDER }
+            }
+            steps {
+                script {
+                    node('ios-builder') {
+                        unstash 'mac-agent-builder-installer'
+                        sh "bash helper/mac-agent-builder-installer.bash"
                     }
                 }
+            }
+        }
 
-                stage('Agent QA Install') {
-                    when {
-                        expression { params.INSTALL_QA }
-                    }
-                    steps {
-                        script {
-                            node('ios-qa') {
-                                unstash 'mac-agent-qa-installer'
-                                sh "bash helper/mac-agent-qa-installer.bash"
-                            }
-                        }
+        stage('Agent QA Install') {
+            when {
+                expression { params.INSTALL_QA }
+            }
+            steps {
+                script {
+                    node('ios-qa') {
+                        unstash 'mac-agent-qa-installer'
+                        sh "bash helper/mac-agent-qa-installer.bash"
                     }
                 }
             }
