@@ -5,7 +5,7 @@ def call(Closure body) {
             def zshrcPath = "${env.HOME}/${env.CICD_FOLDER}/builder/.zshrc"
             envVars = readZshrcEnv(zshrcPath)
             break
-        case 'ios/test-e2e':
+        case 'ios/e2e-test':
             def zshrcPath = "${env.HOME}/${env.CICD_FOLDER}/qa/.zshrc"
             envVars = readZshrcEnv(zshrcPath)
             break
@@ -19,12 +19,12 @@ def call(Closure body) {
 private def readZshrcEnv(String zshrcPath) {
     def envOutput = sh(
             script: """
-                #!/bin/bash
-                set +x  # disable command echo
+                set +x
                 source '${zshrcPath}'
                 while IFS='=' read -r key _; do
                   [ -n "\$key" ] && echo "\$key=\${!key}"
                 done < '${zshrcPath}' | awk -F= '!seen[\$1]++'
+                set -x
             """,
             returnStdout: true,
             label: ''

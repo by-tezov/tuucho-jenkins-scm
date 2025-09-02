@@ -37,38 +37,56 @@ def storeReport(
 }
 
 def storeCache(
-        String target,
-        String validityTarget
+        String folder,
+        Map input
 ) {
-    def workspaceTarget = "project/${target}"
-    if (!fileExists(workspaceTarget) || sh(script: "ls -A ${workspaceTarget} | wc -l", returnStdout: true).trim() == "0") {
-        log.info "Target ${target} does not exist or is empty, skipping cache store"
+    if (input.containsKey('fileValidity')) {
+        def fileValidity = "project/${input.fileValidity}"
+        if (!fileExists(fileValidity)) {
+            log.info "file validity not found at ${fileValidity}, skipping cache store"
+            return
+        }
+        def hashValidity = sh(
+                script: "sha256sum '${fileValidity}' | awk '{print \$1}'",
+                returnStdout: true
+        ).trim()
+        return storeCache(folder, hashValidity)
+    }
+    if (input.containsKey('hashValidity')) {
+        return storeCache(folder, input.hashValidity)
+    }
+    error("no named argument valid for store cache ")
+}
+
+def storeCache(
+        String folder,
+        String hashValidity
+) {
+    def workspace = "project/${folder}"
+    if (!fileExists(workspace) || sh(script: "ls -A ${workspace} | wc -l", returnStdout: true).trim() == "0") {
+        log.info "${folder} does not exist or is empty, skipping cache store"
         return
     }
-    def fileValidityTarget = "project/${validityTarget}"
-    if (!fileExists(fileValidityTarget)) {
-        log.info "No validity file found at ${fileValidityTarget}, skipping cache store"
-        return
-    }
-    def hashValidity = sh(
-            script: "sha256sum '${fileValidityTarget}' | awk '{print \$1}'",
-            returnStdout: true
-    ).trim()
-    def repoWorkspace = "${absolutePath('')}/${target}/${hashValidity}"
+    def repoWorkspace = "${absolutePath('')}/${folder}"
+    def tarFile = "${hashValidity}.tar"
     def upToDateCache = false
     node('repository') {
-        if (fileExists(repoWorkspace)) {
+        if (fileExists("${repoWorkspace}/${tarFile}")) {
             upToDateCache = true
         }
     }
     if (upToDateCache) {
-        log.info "Cache for ${target} already up-to-date, skipping store"
+        log.info "Cache for ${folder} already up-to-date, skipping store"
         return
     }
-    log.info "storing cache ${hashValidity} for target ${target}"
+    log.info "storing cache ${folder}"
     def key = key()
-    dir(workspaceTarget) {
-        stash name: key, includes: "**/*"
+    dir(workspace) {
+        sh """
+            tar -cf project@tmp/${tarFile} .
+            mv project@tmp/${tarFile} ${tarFile}
+        """
+        stash name: key, includes: tarFile
     }
     node('repository') {
         dir(repoWorkspace) {
@@ -78,36 +96,54 @@ def storeCache(
 }
 
 def restoreCache(
-        String target,
-        String validityTarget
+        String folder,
+        Map input
 ) {
-    def fileValidityTarget = "project/${validityTarget}"
-    if (!fileExists(fileValidityTarget)) {
-        log.info "No validity file found at ${fileValidityTarget}, skipping cache restore"
-        return
+    if (input.containsKey('fileValidity')) {
+        def fileValidity = "project/${input.fileValidity}"
+        if (!fileExists(fileValidity)) {
+            log.info "file validity not found at ${fileValidity}, skipping cache store"
+            return false
+        }
+        def hashValidity = sh(
+                script: "sha256sum '${fileValidity}' | awk '{print \$1}'",
+                returnStdout: true
+        ).trim()
+        return restoreCache(folder, hashValidity)
     }
-    def hashValidity = sh(
-            script: "sha256sum '${fileValidityTarget}' | awk '{print \$1}'",
-            returnStdout: true
-    ).trim()
-    def repoWorkspace = "${absolutePath('')}/${target}/${hashValidity}"
+    if (input.containsKey('hashValidity')) {
+        return restoreCache(folder, input.hashValidity)
+    }
+}
+
+def restoreCache(
+        String folder,
+        String hashValidity
+) {
+    def repoWorkspace = "${absolutePath('')}/${folder}"
+    def tarFile = "${hashValidity}.tar"
     def hasCache = false
     def key = key()
     node('repository') {
-        if (fileExists(repoWorkspace)) {
+        if (fileExists("${repoWorkspace}/${tarFile}")) {
             dir(repoWorkspace) {
-                stash name: key, includes: '**/*'
+                stash name: key, includes: tarFile
                 hasCache = true
             }
         }
     }
     if (!hasCache) {
-        log.info "No cache to restore for target ${target}"
-        return
+        log.info "No cache to restore for folder ${folder}"
+        return false
     }
-    log.info "restoring cache ${hashValidity} for ${target}"
-    dir("project/${target}") {
+    log.info "restoring cache for ${folder}"
+    dir("project/${folder}") {
         deleteDir()
         unstash key
+        sh """
+            tar -xf ${tarFile}
+            rm -f ${tarFile}
+        """
     }
+    return true
 }
