@@ -1,9 +1,9 @@
 @groovy.transform.Field
 def label = [
-        e2eTest              : 'E2E Test',
-        unitTest             : 'Unit Test',
-        e2eTestClearBaseline : 'E2E Test Clear Baseline',
-        e2eTestUpdateBaseline: 'E2E Test Update Baseline',
+        e2eTestAN                  : 'E2E Test Android',
+        e2eTestIOS                 : 'E2E Test iOS',
+        unitTest                   : 'Unit Test',
+        e2eTestCreateVisualBaseline: 'E2E Test - Create Visual Baseline'
 ]
 
 @groovy.transform.Field
@@ -52,23 +52,29 @@ def platform = [
 
 @groovy.transform.Field
 def commitOption = [
-        testE2E              : 'test_e2e',
-        buildType            : 'build_type',
-        flavorType           : 'flavor_type',
-        language             : 'language',
-        branchNameQA         : 'branch_name_qa',
-        testE2EWaitToSucceed : 'test_e2e_wait_to_succeed',
-        deviceIOS            : 'device_ios',
-        deviceAN             : 'device_an',
-        testE2EClearBaseline : 'test_e2e_clear_baseline',
-        testE2EUpdateBaseline: 'test_e2e_update_baseline'
-
+        buildType                  : 'build_type',
+        flavorType                 : 'flavor_type',
+        language                   : 'language',
+        branchNameQA               : 'branch_name_qa',
+        e2eTestAN                  : 'e2e_test_an',
+        deviceAN                   : 'device_an',
+        e2eTestIOS                 : 'e2e_test_ios',
+        deviceIOS                  : 'device_ios',
+        e2eTestWaitToSucceed       : 'e2e_test_wait_to_succeed',
+        e2eTestCreateVisualBaseline: 'e2e_test_create_visual_baseline'
 ]
 
 @groovy.transform.Field
 def pullRequestContextStatus = [
-        pr_an : 'PR-AN',
-        pr_ios: 'PR-IOS'
+        pull_request: 'PULL-REQUEST',
+        unit_test   : 'UNIT-TEST',
+        build_an    : 'BUILD-AN',
+        e2e_test_an : 'E2E-TEST-AN',
+        e2e_test_visual_baseline_an: 'VISUAL-BASELINE-AN',
+        build_ios   : 'BUILD-IOS',
+        e2e_test_ios: 'E2E-TEST-IOS',
+        e2e_test_visual_baseline_ios: 'VISUAL-BASELINE-IOS',
+
 ]
 
 @groovy.transform.Field

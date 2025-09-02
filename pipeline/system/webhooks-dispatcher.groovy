@@ -1,4 +1,4 @@
-@Library('library@release/0.0.1-alpha10') _
+@Library('library@master') _
 
 import com.tezov.jenkins.webhook.WebhookContent
 import com.tezov.jenkins.webhook.enums.Key
@@ -175,110 +175,83 @@ pipeline {
                 }
             }
         }
-        stage('dispatch pipeline') {
-            stage('build') {
-                when {
-                    expression {
-                        // not deleted
-                        // and epic|feat|chore|fix|release
-                        // and
-                        //       push and has_pull_request
-                        //   or
-                        //       pull_request and (opened | reopened)
-                        //   or
-                        //       label ('E2E Test' or 'Unit Test'')
-                        matcher(content) {
-                            and {
-                                expression(Key.isSourceBranchDeleted) { it == null || it == false }
-                                regex(Key.sourceBranch, /(?:epic|feat|chore|fix|release)\/.*/)
-                                or {
-                                    and {
-                                        exact(Key.type, Type.push)
-                                        exact(KeyPullRequest.isDraft, false)
-                                        expression(Key.pullRequest) { it != null }
+
+        stage('pull-request') {
+            when {
+                expression {
+                    /* TUUCHO AN+IOS */
+                    // not deleted
+                    // and epic|feat|chore|fix|release
+                    // and
+                    //       push and has_pull_request and not draft
+                    //   or
+                    //       pull_request  and not draft and (opened | reopened)
+                    //   or
+                    //       label ('E2E Test' or 'Unit Test'')
+                    matcher(content) {
+                        and {
+                            expression(Key.repositoryName) { it == constant.repository.tuucho }
+                            expression(Key.isSourceBranchDeleted) { it == null || it == false }
+                            regex(Key.sourceBranch, /(?:epic|feat|chore|fix|release)\/.*/)
+                            or {
+                                and {
+                                    exact(Key.type, Type.push)
+                                    expression(Key.pullRequest) { it != null }
+                                    exact(KeyPullRequest.isDraft, false)
+                                }
+                                and {
+                                    exact(Key.type, Type.pull)
+                                    exact(KeyPullRequest.isDraft, false)
+                                    or {
+                                        exact(KeyPullRequest.action, PullRequestAction.opened)
+                                        exact(KeyPullRequest.action, PullRequestAction.reopened)
                                     }
-                                    and {
-                                        exact(Key.type, Type.pull)
-                                        exact(KeyPullRequest.isDraft, false)
-                                        or {
-                                            exact(KeyPullRequest.action, PullRequestAction.opened)
-                                            exact(KeyPullRequest.action, PullRequestAction.reopened)
-                                        }
-                                    }
-                                    and {
-                                        exact(Key.type, Type.pull)
-                                        exact(KeyPullRequest.action, PullRequestAction.labeled)
-                                        or {
-                                            exact(KeyPullRequest.labelAdded, constant.label.e2eTest)
-                                            exact(KeyPullRequest.labelAdded, constant.label.unitTest)
-                                        }
+                                }
+                                and {
+                                    exact(Key.type, Type.pull)
+                                    exact(KeyPullRequest.action, PullRequestAction.labeled)
+                                    or {
+                                        exact(KeyPullRequest.labelAdded, constant.label.e2eTestAN)
+                                        exact(KeyPullRequest.labelAdded, constant.label.e2eTestIOS)
+                                        exact(KeyPullRequest.labelAdded, constant.label.unitTest)
                                     }
                                 }
                             }
-                            log { message -> log.info message }
                         }
+                        log { message -> log.info message }
                     }
                 }
-                steps {
-                    script {
-                        def launchTestAuto = option[constant.commitOption.testE2E]?.toBoolean()
-                                ?: content[KeyPullRequest.labels]?.contains(constant.label.e2eTest)
-                                ?: false
-                        def testAutoClearBaseline = option[constant.commitOption.testE2EClearBaseline]?.toBoolean()
-                                ?: content[KeyPullRequest.labels]?.contains(constant.label.e2eTestClearBaseline)
-                                ?: false
-                        def testAutoUpdateBaseline = option[constant.commitOption.e2eTestUpdateBaseline]?.toBoolean()
-                                ?: content[KeyPullRequest.labels]?.contains(constant.label.testE2EUpdateBaseline)
-                                ?: false
+            }
+            steps {
+                script {
+                    def launchE2eTestAN = option[constant.commitOption.e2eTestAN]?.toBoolean()
+                            ?: content[KeyPullRequest.labels]?.contains(constant.label.e2eTestAN)
+                            ?: false
+                    def launchE2ETestIOS = option[constant.commitOption.e2eTestIOS]?.toBoolean()
+                            ?: content[KeyPullRequest.labels]?.contains(constant.label.e2eTestIOS)
+                            ?: false
+                    def e2eTestCreateVisualBaseline = option[constant.commitOption.e2eTestCreateVisualBaseline]?.toBoolean()
+                            ?: content[KeyPullRequest.labels]?.contains(constant.label.e2eTestCreateVisualBaseline)
+                            ?: false
 
-                        /* TUUCHO */
-                        matcher(content) {
-                            expression(Key.repositoryName) { it == constant.repository.tuucho }
-                            log { message -> log.info message }
-                            onSuccess {
-                                parallel {
-                                    stage('build android') {
-                                        log.info "Triggering android/build for branch: ${content[Key.sourceBranch]}"
-                                        build job: 'android/build', parameters: [
-                                                string(name: 'PULL_REQUEST_SHA', value: content[KeyPullRequest.sha]),
-                                                string(name: 'SOURCE_BRANCH', value: content[Key.sourceBranch]),
-                                                string(name: 'TARGET_BRANCH', value: content[KeyPullRequest.targetBranch]),
-                                                string(name: 'BUILD_TYPE', value: option[constant.commitOption.buildType] ?: constant.buildType.debug),
-                                                string(name: 'FLAVOR_TYPE', value: option[constant.commitOption.flavorType] ?: constant.flavorType.mock),
-                                                string(name: 'LANGUAGE', value: option[constant.commitOption.language] ?: constant.language.en),
-                                                string(name: 'BRANCH_NAME_QA', value: option[constant.commitOption.brancheNameQA] ?: 'master'),
-                                                booleanParam(name: 'TEST_E2E', value: launchTestAuto),
-                                                booleanParam(name: 'TEST_E2E_WAIT_TO_SUCCEED', value: option[constant.commitOption.testE2EWaitToSucceed]?.toBoolean() ?: false),
-                                                booleanParam(name: 'TEST_E2E_CLEAR_VISUAL_BASELINE', value: testAutoClearBaseline),
-                                                booleanParam(name: 'TEST_E2E_UPDATE_VISUAL_BASELINE', value: testAutoUpdateBaseline),
-                                                string(name: 'DEVICE_NAME', value: option[constant.commitOption.deviceAN] ?: ''),
-                                                string(name: 'COMMIT_AUTHOR', value: content[Key.author]),
-                                                string(name: 'COMMIT_MESSAGE', value: content[Key.commitMessage]),
-                                        ], wait: false
-                                    }
-                                    stage('build ios') {
-                                        log.info "Triggering ios/build for branch: ${content[Key.sourceBranch]}"
-                                        build job: 'android/build', parameters: [
-                                                string(name: 'PULL_REQUEST_SHA', value: content[KeyPullRequest.sha]),
-                                                string(name: 'SOURCE_BRANCH', value: content[Key.sourceBranch]),
-                                                string(name: 'TARGET_BRANCH', value: content[KeyPullRequest.targetBranch]),
-                                                string(name: 'BUILD_TYPE', value: option[constant.commitOption.buildType] ?: constant.buildType.debug),
-                                                string(name: 'FLAVOR_TYPE', value: option[constant.commitOption.flavorType] ?: constant.flavorType.mock),
-                                                string(name: 'LANGUAGE', value: option[constant.commitOption.language] ?: constant.language.en),
-                                                string(name: 'BRANCH_NAME_QA', value: option[constant.commitOption.brancheNameQA] ?: 'master'),
-                                                booleanParam(name: 'TEST_E2E', value: launchTestAuto),
-                                                booleanParam(name: 'TEST_E2E_WAIT_TO_SUCCEED', value: option[constant.commitOption.testE2EWaitToSucceed]?.toBoolean() ?: false),
-                                                booleanParam(name: 'TEST_E2E_CLEAR_VISUAL_BASELINE', value: testAutoClearBaseline),
-                                                booleanParam(name: 'TEST_E2E_UPDATE_VISUAL_BASELINE', value: testAutoUpdateBaseline),
-                                                string(name: 'DEVICE_NAME', value: option[constant.commitOption.deviceIOS] ?: ''),
-                                                string(name: 'COMMIT_AUTHOR', value: content[Key.author]),
-                                                string(name: 'COMMIT_MESSAGE', value: content[Key.commitMessage]),
-                                        ], wait: false
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    log.info "Triggering pull-request for branch: ${content[Key.sourceBranch]}"
+                    build job: 'pull-request', parameters: [
+                            string(name: 'SOURCE_BRANCH', value: content[Key.sourceBranch]),
+                            string(name: 'TARGET_BRANCH', value: content[KeyPullRequest.targetBranch]),
+                            string(name: 'BUILD_TYPE', value: option[constant.commitOption.buildType] ?: constant.buildType.debug),
+                            string(name: 'FLAVOR_TYPE', value: option[constant.commitOption.flavorType] ?: constant.flavorType.mock),
+                            string(name: 'LANGUAGE', value: option[constant.commitOption.language] ?: constant.language.en),
+                            string(name: 'BRANCH_NAME_QA', value: option[constant.commitOption.brancheNameQA] ?: 'master'),
+                            booleanParam(name: 'E2E_TEST_CREATE_VISUAL_BASELINE', value: e2eTestCreateVisualBaseline),
+                            booleanParam(name: 'E2E_TEST_AN', value: launchE2eTestAN),
+                            string(name: 'DEVICE_NAME_AN', value: option[constant.commitOption.deviceAN] ?: ''),
+                            booleanParam(name: 'E2E_TEST_IOS', value: launchE2ETestIOS),
+                            string(name: 'DEVICE_NAME_IOS', value: option[constant.commitOption.deviceIOS] ?: ''),
+                            string(name: 'COMMIT_AUTHOR', value: content[Key.author]),
+                            string(name: 'COMMIT_MESSAGE', value: content[Key.commitMessage]),
+                            string(name: 'CALLER_BUILD_NUMBER', value: env.BUILD_NUMBER),
+                            string(name: 'PULL_REQUEST_SHA', value: content[KeyPullRequest.sha])
+                    ], wait: false
                 }
             }
         }

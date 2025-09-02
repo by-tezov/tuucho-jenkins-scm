@@ -1,11 +1,7 @@
-@Library('library@chore/add-ios-build') _
+@Library('library@master') _
 
 pipeline {
-    agent {
-        node {
-            label 'master'
-        }
-    }
+    agent none
 
     parameters {
         booleanParam(name: 'INSTALL_BUILDER', defaultValue: false, description: 'Install builder agent')

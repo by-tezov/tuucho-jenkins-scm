@@ -1,11 +1,11 @@
-@Library('library@chore/add-ios-build') _
+@Library('library@master') _
 
 def setStatus = { status, message ->
     setPullRequestStatus(
             params.PULL_REQUEST_SHA,
-            constant.pullRequestContextStatus.pr_an,
+            constant.pullRequestContextStatus.build_an,
             status,
-            "${env.BUILD_NUMBER} - ${message}"
+            "${env.BUILD_NUMBER} - ${env.CALLER_BUILD_NUMBER} - ${message}"
     )
 }
 
@@ -18,20 +18,16 @@ pipeline {
     }
 
     parameters {
-        string(name: 'PULL_REQUEST_SHA', defaultValue: '', description: 'Pull request sha (used to update status on GitHub)')
-        string(name: 'SOURCE_BRANCH', defaultValue: 'chore/minor-stuff', description: 'Source branch to build')
-        string(name: 'TARGET_BRANCH', defaultValue: 'release/0.0.1-alpha10', description: 'Target branch to merge (merge is done only locally, not on remote)')
+        separator(name: '-build-', sectionHeader: '-build-')
+        string(name: 'SOURCE_BRANCH', defaultValue: '', description: 'Source branch to build')
+        string(name: 'TARGET_BRANCH', defaultValue: '', description: 'Target branch to merge (merge is done only locally, not on remote)')
         choice(name: 'BUILD_TYPE', choices: ['debug', 'release'], description: 'Build type')
         choice(name: 'FLAVOR_TYPE', choices: ['mock', 'prod'], description: 'Flavor type')
-        choice(name: 'LANGUAGE', choices: ['en', 'fr'], description: 'Language to use for e2e test')
-        string(name: 'BRANCH_NAME_QA', defaultValue: 'fix/npm-ssl-error', description: 'Branch name qa of e2e test')
-        booleanParam(name: 'TEST_E2E', defaultValue: false, description: 'Build APK and launch test end to end')
-        booleanParam(name: 'TEST_E2E_WAIT_TO_SUCCEED', defaultValue: false, description: 'Wait end of test e2e')
-        booleanParam(name: 'TEST_E2E_CLEAR_VISUAL_BASELINE', defaultValue: false, description: 'Clear visual baseline for device selected')
-        booleanParam(name: 'TEST_E2E_UPDATE_VISUAL_BASELINE', defaultValue: false, description: 'Update visual baseline for device selected')
-        choice(name: 'DEVICE_NAME', choices: ['android-36-simulator-fluxbox', 'android-36-simulator-standalone', ''], description: 'Device name to use')
+        separator(name: '-system-', sectionHeader: '-system-')
         string(name: 'COMMIT_AUTHOR', defaultValue: '', description: 'Commit author')
         string(name: 'COMMIT_MESSAGE', defaultValue: '', description: 'Commit message')
+        string(name: 'CALLER_BUILD_NUMBER', defaultValue: '', description: 'Caller build number')
+        string(name: 'PULL_REQUEST_SHA', defaultValue: '', description: 'Pull request sha (used to update status on GitHub)')
     }
 
     environment {
@@ -53,7 +49,7 @@ pipeline {
                                 log.success "buildType: ${params.BUILD_TYPE}, falvorType: ${params.FLAVOR_TYPE}, sourceBranch: ${params.SOURCE_BRANCH}, targetBranch: ${params.TARGET_BRANCH}"
                                 addBuildTypeBadge(params.BUILD_TYPE)
                                 addFlavorTypeBadge(params.FLAVOR_TYPE)
-                                currentBuild.displayName = "#${env.BUILD_NUMBER}"
+                                currentBuild.displayName = "#${env.BUILD_NUMBER}-#${params.CALLER_BUILD_NUMBER}"
                                 if (params.COMMIT_AUTHOR != '' && params.COMMIT_MESSAGE != '') {
                                     log.info "author: ${params.COMMIT_AUTHOR}, message: ${params.COMMIT_MESSAGE}"
                                     currentBuild.description = "${params.COMMIT_AUTHOR} - ${params.COMMIT_MESSAGE}<br>"
@@ -66,13 +62,18 @@ pipeline {
                             'status pending': {
                                 setStatus(
                                         constant.pullRequestStatus.pending,
-                                        "${env.BUILD_NUMBER} - Buiding job initiated: build type:${params.BUILD_TYPE}, flavor type:${params.FLAVOR_TYPE}"
+                                        "Buid job initiated"
                                 )
                             },
                             'clean workspaces': {
                                 workspace.clean()
-                            }
-                    )
+                            },
+                            'prepare variables': {
+                                // send to upstream
+                                env.AGENT = env.AGENT
+                                env.JOB_NAME = env.JOB_NAME
+                                env.BUILD_NUMBER = env.BUILD_NUMBER
+                            })
                 }
             }
         }
@@ -86,11 +87,9 @@ pipeline {
                     script {
                         setStatus(
                                 constant.pullRequestStatus.pending,
-                                "${env.BUILD_NUMBER} - Cloning and Merging: source: ${params.SOURCE_BRANCH} -> target:${params.TARGET_BRANCH}"
+                                "Cloning and Merging: source: ${params.SOURCE_BRANCH} -> target:${params.TARGET_BRANCH}"
                         )
-                    }
-                    git branch: params.SOURCE_BRANCH, credentialsId: "${env.GIT_CREDENTIAL_ID}", url: env.GIT_TUUCHO
-                    script {
+                        git branch: params.SOURCE_BRANCH, credentialsId: "${env.GIT_CREDENTIAL_ID}", url: env.GIT_TUUCHO
                         sh """
                             git fetch origin ${params.TARGET_BRANCH}:${params.TARGET_BRANCH}
                             git rebase ${params.TARGET_BRANCH}
@@ -112,94 +111,19 @@ pipeline {
             }
         }
 
-        stage('unit test') {
+        stage('build') {
             options {
-                timeout(time: 15, unit: 'MINUTES')
+                timeout(time: 10, unit: 'MINUTES')
             }
             steps {
                 script {
                     setStatus(
                             constant.pullRequestStatus.pending,
-                            "${env.BUILD_NUMBER} - Unit Testing: Finger crossed..."
+                            "Building"
                     )
-                }
-                script {
-                    replaceFlavorType(constant.flavorType.mock)
-                    runGradleTask('allUnitTestsDebug', 'project')
-                    repository.storeReport('build/reports/unit-tests')
-                    currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/build/reports/unit-tests/index.html" target="_blank">Tests report</a>"""
-                }
-            }
-        }
-
-        stage('coverage') {
-            options {
-                timeout(time: 2, unit: 'MINUTES')
-            }
-            steps {
-                script {
-                    setStatus(
-                            constant.pullRequestStatus.pending,
-                            "${env.BUILD_NUMBER} - Coverage reporting"
-                    )
-                }
-                script {
-                    runGradleTask('koverHtmlReport', 'project')
-                    repository.storeReport('build/reports/kover/html')
-                    currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/build/reports/kover/html/index.html" target="_blank">Tests report</a>"""
-                }
-            }
-        }
-
-        stage('build for e2e test') {
-            options {
-                timeout(time: 20, unit: 'MINUTES')
-            }
-            when {
-                expression { params.TEST_E2E }
-            }
-            steps {
-                script {
-                    setStatus(
-                            constant.pullRequestStatus.pending,
-                            "${env.BUILD_NUMBER} - Building for e2e test"
-                    )
-                }
-                script {
                     replaceFlavorType(params.FLAVOR_TYPE)
-                    runGradleTask(":app:android:${constant.assembleTask[params.BUILD_TYPE]}", 'project')
+                    runGradleTask(":app:android:${constant.assembleTask[params.BUILD_TYPE]}")
                     //TODO, use agent-repository to store apk and update getApplicationPath
-                }
-            }
-        }
-
-        stage('launch e2e test') {
-            when {
-                expression { params.TEST_E2E }
-            }
-            steps {
-                script {
-                    setStatus(
-                            constant.pullRequestStatus.pending,
-                            "${env.BUILD_NUMBER} - Launch e2e test"
-                    )
-                }
-                script {
-                    build job: 'android/test-e2e', parameters: [
-                            string(name: 'PULL_REQUEST_SHA', value: params.PULL_REQUEST_SHA),
-                            string(name: 'BUILD_TYPE', value: params.BUILD_TYPE),
-                            string(name: 'FLAVOR_TYPE', value: params.FLAVOR_TYPE),
-                            string(name: 'CALLER_JOB_NAME', value: env.JOB_NAME),
-                            string(name: 'CALLER_BUILD_NUMBER', value: env.BUILD_NUMBER),
-                            string(name: 'LANGUAGE', value: params.LANGUAGE),
-                            string(name: 'BRANCH_NAME', value: params.BRANCH_NAME_QA),
-                            string(name: 'APP_VERSION', value: getMarketingVersion()),
-                            booleanParam(name: 'CLEAR_VISUAL_BASELINE', value: params.TEST_E2E_CLEAR_VISUAL_BASELINE),
-                            booleanParam(name: 'UPDATE_VISUAL_BASELINE', value: params.TEST_E2E_UPDATE_VISUAL_BASELINE),
-                            string(name: 'DEVICE_NAME', value: params.DEVICE_NAME),
-                            string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
-                            string(name: 'COMMIT_MESSAGE', value: params.COMMIT_MESSAGE),
-                    ], wait: params.TEST_E2E_WAIT_TO_SUCCEED
                 }
             }
         }
@@ -207,22 +131,18 @@ pipeline {
     post {
         success {
             script {
-                if (!params.TEST_E2E) {
-                    setStatus(
-                            constant.pullRequestStatus.success,
-                            "${env.BUILD_NUMBER} - Succeed: Make sure to read yourself again before to merge ;)"
-                    )
-                }
+                setStatus(
+                        constant.pullRequestStatus.success,
+                        "Succeed"
+                )
             }
         }
         failure {
             script {
-                if (!params.TEST_E2E) {
-                    setStatus(
-                            constant.pullRequestStatus.failure,
-                            "${env.BUILD_NUMBER} - Failed: Mm, I can't help you, but maybe the logs will... :"
-                    )
-                }
+                setStatus(
+                        constant.pullRequestStatus.failure,
+                        "Failed: Mm, I can't help you, but maybe the logs will... :"
+                )
             }
         }
     }
