@@ -83,8 +83,8 @@ def storeCache(
     def key = key()
     dir(workspace) {
         sh """
-            tar -cf project@tmp/${tarFile} .
-            mv project@tmp/${tarFile} ${tarFile}
+            tar -cf ${env.WORKSPACE}/project@tmp/${tarFile} .
+            mv ${env.WORKSPACE}/project@tmp/${tarFile} ${tarFile}
         """
         stash name: key, includes: tarFile
     }
