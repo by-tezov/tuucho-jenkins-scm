@@ -179,7 +179,7 @@ pipeline {
                                 }
                             },
                             'start simulator': {
-                                stage('start appium') {
+                                stage('start simulator') {
                                     timeout(time: 2, unit: 'MINUTES') {
                                         deviceHasBeenStarted = true
                                         sourceEnv {
