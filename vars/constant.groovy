@@ -72,7 +72,7 @@ def pullRequestContextStatus = [
         e2e_test_an : 'Android: Test End To End',
         e2e_test_visual_baseline_an: 'Android: Visual baseline',
         build_ios   : 'iOS: Build',
-        e2e_test_ios: 'iOS; Test ENd to End',
+        e2e_test_ios: 'iOS: Test End to End',
         e2e_test_visual_baseline_ios: 'iOS: Visual baseline'
 ]
 
