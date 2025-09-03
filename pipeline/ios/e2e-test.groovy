@@ -8,7 +8,7 @@ def setStatus = { status, message ->
             params.PULL_REQUEST_SHA,
             constant.pullRequestContextStatus.e2e_test_ios,
             status,
-            "${env.BUILD_NUMBER} - ${env.CALLER_BUILD_NUMBER} - ${message}"
+            "${message}"
     )
 }
 

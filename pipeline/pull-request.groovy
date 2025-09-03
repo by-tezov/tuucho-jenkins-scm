@@ -5,7 +5,7 @@ def setStatus = { status, message ->
             params.PULL_REQUEST_SHA,
             constant.pullRequestContextStatus.pull_request,
             status,
-            "${env.BUILD_NUMBER} - ${env.CALLER_BUILD_NUMBER} - ${message}"
+            "${env.BUILD_NUMBER} - ${message}"
     )
 }
 
