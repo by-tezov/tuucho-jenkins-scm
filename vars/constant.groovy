@@ -66,15 +66,14 @@ def commitOption = [
 
 @groovy.transform.Field
 def pullRequestContextStatus = [
-        pull_request: 'PULL-REQUEST',
-        unit_test   : 'UNIT-TEST',
-        build_an    : 'BUILD-AN',
-        e2e_test_an : 'E2E-TEST-AN',
-        e2e_test_visual_baseline_an: 'VISUAL-BASELINE-AN',
-        build_ios   : 'BUILD-IOS',
-        e2e_test_ios: 'E2E-TEST-IOS',
-        e2e_test_visual_baseline_ios: 'VISUAL-BASELINE-IOS',
-
+        pull_request: 'CI Check',
+        unit_test   : 'Unit test Check',
+        build_an    : 'Android: Build',
+        e2e_test_an : 'Android: Test End To End',
+        e2e_test_visual_baseline_an: 'Android: Visual baseline',
+        build_ios   : 'iOS: Build',
+        e2e_test_ios: 'iOS; Test ENd to End',
+        e2e_test_visual_baseline_ios: 'iOS: Visual baseline'
 ]
 
 @groovy.transform.Field
