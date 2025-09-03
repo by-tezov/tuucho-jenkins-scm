@@ -14,6 +14,11 @@ pipeline {
 
     stages {
         stage('stash bash installer') {
+            agent {
+                node {
+                    label 'master'
+                }
+            }
             steps {
                 script {
                     sh "mkdir -p helper"
