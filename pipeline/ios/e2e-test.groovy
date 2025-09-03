@@ -216,6 +216,7 @@ pipeline {
                                     constant.pullRequestStatus.failure,
                                     "No visual baseline found, need to create the visual baseline"
                             )
+                            error("No visual baseline found, need to create the visual baseline")
                         }
                     } else {
                         setVisualBaselineStatus(
