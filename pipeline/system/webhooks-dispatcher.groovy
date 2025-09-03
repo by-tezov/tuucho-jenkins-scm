@@ -165,8 +165,8 @@ pipeline {
                         for (int i = 0; i < segments.length; i++) {
                             def parts = segments[i].split('=')
                             if (parts.length == 2) {
-                                def key = parts[0].toLowerCase()
-                                def value = parts[1].toLowerCase()
+                                def key = parts[0]
+                                def value = parts[1]
                                 option[key] = value
                             }
                         }
