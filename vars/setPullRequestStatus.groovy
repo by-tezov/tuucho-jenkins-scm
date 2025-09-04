@@ -3,7 +3,8 @@ def call(
         String context,
         String status,
         String description,
-        String repositoryFullName = env.GITHUB_TUUCHO_REPOSITORY
+        String repositoryFullName = env.GITHUB_TUUCHO_REPOSITORY,
+        String credentialsId = env.GITHUB_API_TOKEN_ID
 ) {
     if (!sha) {
         echo "Skipping GitHub status update because SHA is empty"
@@ -14,14 +15,17 @@ def call(
         "context": "${context}",
         "description": "${description}"       
     }"""
-    httpRequest(
-            url: "https://api.github.com/repos/${repositoryFullName}/statuses/${sha}",
-            httpMode: 'POST',
-            contentType: 'APPLICATION_JSON',
-            requestBody: requestBody,
-            customHeaders: [
-                    [name: 'Authorization', value: "Bearer ${env.GITHUB_API_TOKEN}"]
-            ],
-            validResponseCodes: '201'
-    )
+    withCredentials([string(credentialsId: credentialsId, variable: 'GITHUB_TOKEN')]) {
+        httpRequest(
+                url: "https://api.github.com/repos/${repositoryFullName}/statuses/${sha}",
+                httpMode: 'POST',
+                contentType: 'APPLICATION_JSON',
+                requestBody: requestBody,
+                customHeaders: [
+                        [name: 'User-Agent', value: 'Jenkins'],
+                        [name: 'Authorization', value: "Bearer ${GITHUB_TOKEN}"]
+                ],
+                validResponseCodes: '201'
+        )
+    }
 }

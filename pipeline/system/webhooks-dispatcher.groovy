@@ -32,10 +32,6 @@ pipeline {
         )
     }
 
-    environment {
-        GITHUB_API_TOKEN = credentials('github-api-token')
-    }
-
     options {
         parallelsAlwaysFailFast()
         ansiColor('xterm')

@@ -53,7 +53,6 @@ pipeline {
 
     environment {
         AGENT = 'ios-qa'
-        GITHUB_API_TOKEN = credentials('github-api-token')
         DEVICE_START_TIMEOUT_IN_SECONDS = '240'
         DEVICE_SHUTDOWN_TIMEOUT_IN_SECONDS = '120'
         PLATFORM = 'ios'
