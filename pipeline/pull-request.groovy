@@ -128,113 +128,116 @@ pipeline {
 
         stage('---') {
             parallel {
-                stages {
-                    stage('build android') {
-                        when {
-                            expression { params.E2E_TEST_AN }
-                        }
-                        steps {
-                            script {
-                                childBuild_AN = build job: 'android/build', parameters: [
-                                        string(name: 'SOURCE_BRANCH', value: params.SOURCE_BRANCH),
-                                        string(name: 'TARGET_BRANCH', value: params.TARGET_BRANCH),
-                                        string(name: 'BUILD_TYPE', value: params.BUILD_TYPE),
-                                        string(name: 'FLAVOR_TYPE', value: params.FLAVOR_TYPE),
-                                        string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
-                                        string(name: 'COMMIT_MESSAGE', value: params.COMMIT_MESSAGE),
-                                        string(name: 'CALLER_BUILD_NUMBER', value: childUnitTest.buildVariables.BUILD_NUMBER),
-                                        string(name: 'PULL_REQUEST_SHA', value: params.PULL_REQUEST_SHA)
-                                ], wait: true
+                stage('android pipeline') {
+                    stages {
+                        stage('build android') {
+                            when {
+                                expression { params.E2E_TEST_AN }
+                            }
+                            steps {
+                                script {
+                                    childBuild_AN = build job: 'android/build', parameters: [
+                                            string(name: 'SOURCE_BRANCH', value: params.SOURCE_BRANCH),
+                                            string(name: 'TARGET_BRANCH', value: params.TARGET_BRANCH),
+                                            string(name: 'BUILD_TYPE', value: params.BUILD_TYPE),
+                                            string(name: 'FLAVOR_TYPE', value: params.FLAVOR_TYPE),
+                                            string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
+                                            string(name: 'COMMIT_MESSAGE', value: params.COMMIT_MESSAGE),
+                                            string(name: 'CALLER_BUILD_NUMBER', value: childUnitTest.buildVariables.BUILD_NUMBER),
+                                            string(name: 'PULL_REQUEST_SHA', value: params.PULL_REQUEST_SHA)
+                                    ], wait: true
+                                }
                             }
                         }
-                    }
 
-                    stage('e2e-test android') {
-                        when {
-                            expression { params.E2E_TEST_AN }
-                        }
-                        steps {
-                            script {
-                                def appVersion = ''
-                                node(childBuild_AN.buildVariables.AGENT) {
-                                    appVersion = getMarketingVersion(
-                                            childBuild_AN.buildVariables.AGENT,
-                                            childBuild_AN.buildVariables.JOB_NAME,
-                                            childBuild_AN.buildVariables.BUILD_NUMBER
-                                    )
+                        stage('e2e-test android') {
+                            when {
+                                expression { params.E2E_TEST_AN }
+                            }
+                            steps {
+                                script {
+                                    def appVersion = ''
+                                    node(childBuild_AN.buildVariables.AGENT) {
+                                        appVersion = getMarketingVersion(
+                                                childBuild_AN.buildVariables.AGENT,
+                                                childBuild_AN.buildVariables.JOB_NAME,
+                                                childBuild_AN.buildVariables.BUILD_NUMBER
+                                        )
+                                    }
+                                    build job: 'android/e2e-test', parameters: [
+                                            string(name: 'BRANCH_NAME', value: params.BRANCH_NAME_QA),
+                                            string(name: 'APP_VERSION', value: appVersion),
+                                            string(name: 'BUILD_TYPE', value: params.BUILD_TYPE),
+                                            string(name: 'FLAVOR_TYPE', value: params.FLAVOR_TYPE),
+                                            string(name: 'LANGUAGE', value: params.LANGUAGE),
+                                            booleanParam(name: 'CREATE_VISUAL_BASELINE', value: params.E2E_TEST_CREATE_VISUAL_BASELINE),
+                                            string(name: 'DEVICE_NAME', value: deviceToLock_Id_AN),
+                                            string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
+                                            string(name: 'COMMIT_MESSAGE', value: params.COMMIT_MESSAGE),
+                                            string(name: 'CALLER_BUILD_NUMBER', value: childBuild_AN.buildVariables.BUILD_NUMBER),
+                                            string(name: 'PULL_REQUEST_SHA', value: params.PULL_REQUEST_SHA)
+                                    ], wait: true
                                 }
-                                build job: 'android/e2e-test', parameters: [
-                                        string(name: 'BRANCH_NAME', value: params.BRANCH_NAME_QA),
-                                        string(name: 'APP_VERSION', value: appVersion),
-                                        string(name: 'BUILD_TYPE', value: params.BUILD_TYPE),
-                                        string(name: 'FLAVOR_TYPE', value: params.FLAVOR_TYPE),
-                                        string(name: 'LANGUAGE', value: params.LANGUAGE),
-                                        booleanParam(name: 'CREATE_VISUAL_BASELINE', value: params.E2E_TEST_CREATE_VISUAL_BASELINE),
-                                        string(name: 'DEVICE_NAME', value: deviceToLock_Id_AN),
-                                        string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
-                                        string(name: 'COMMIT_MESSAGE', value: params.COMMIT_MESSAGE),
-                                        string(name: 'CALLER_BUILD_NUMBER', value: childBuild_AN.buildVariables.BUILD_NUMBER),
-                                        string(name: 'PULL_REQUEST_SHA', value: params.PULL_REQUEST_SHA)
-                                ], wait: true
                             }
                         }
                     }
                 }
 
-                stages {
-                    stage('build ios') {
-                        when {
-                            expression { params.E2E_TEST_IOS }
-                        }
-                        steps {
-                            script {
-                                childBuild_IOS = build job: 'ios/build', parameters: [
-                                        string(name: 'SOURCE_BRANCH', value: params.SOURCE_BRANCH),
-                                        string(name: 'TARGET_BRANCH', value: params.TARGET_BRANCH),
-                                        string(name: 'BUILD_TYPE', value: params.BUILD_TYPE),
-                                        string(name: 'FLAVOR_TYPE', value: params.FLAVOR_TYPE),
-                                        string(name: 'DEVICE_NAME', value: deviceToLock_Id_IOS),
-                                        string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
-                                        string(name: 'COMMIT_MESSAGE', value: params.COMMIT_MESSAGE),
-                                        string(name: 'CALLER_BUILD_NUMBER', value: childUnitTest.buildVariables.BUILD_NUMBER),
-                                        string(name: 'PULL_REQUEST_SHA', value: params.PULL_REQUEST_SHA)
-                                ], wait: true
+                stage('ios pipeline') {
+                    stages {
+                        stage('build ios') {
+                            when {
+                                expression { params.E2E_TEST_IOS }
+                            }
+                            steps {
+                                script {
+                                    childBuild_IOS = build job: 'ios/build', parameters: [
+                                            string(name: 'SOURCE_BRANCH', value: params.SOURCE_BRANCH),
+                                            string(name: 'TARGET_BRANCH', value: params.TARGET_BRANCH),
+                                            string(name: 'BUILD_TYPE', value: params.BUILD_TYPE),
+                                            string(name: 'FLAVOR_TYPE', value: params.FLAVOR_TYPE),
+                                            string(name: 'DEVICE_NAME', value: deviceToLock_Id_IOS),
+                                            string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
+                                            string(name: 'COMMIT_MESSAGE', value: params.COMMIT_MESSAGE),
+                                            string(name: 'CALLER_BUILD_NUMBER', value: childUnitTest.buildVariables.BUILD_NUMBER),
+                                            string(name: 'PULL_REQUEST_SHA', value: params.PULL_REQUEST_SHA)
+                                    ], wait: true
+                                }
                             }
                         }
-                    }
 
-                    stage('e2e-test ios') {
-                        when {
-                            expression { params.E2E_TEST_IOS }
-                        }
-                        steps {
-                            script {
-                                def appVersion = ''
-                                node(childBuild_IOS.buildVariables.AGENT) {
-                                    appVersion = getMarketingVersion(
-                                            childBuild_IOS.buildVariables.AGENT,
-                                            childBuild_IOS.buildVariables.JOB_NAME,
-                                            childBuild_IOS.buildVariables.BUILD_NUMBER
-                                    )
+                        stage('e2e-test ios') {
+                            when {
+                                expression { params.E2E_TEST_IOS }
+                            }
+                            steps {
+                                script {
+                                    def appVersion = ''
+                                    node(childBuild_IOS.buildVariables.AGENT) {
+                                        appVersion = getMarketingVersion(
+                                                childBuild_IOS.buildVariables.AGENT,
+                                                childBuild_IOS.buildVariables.JOB_NAME,
+                                                childBuild_IOS.buildVariables.BUILD_NUMBER
+                                        )
+                                    }
+                                    build job: 'ios/e2e-test', parameters: [
+                                            string(name: 'BRANCH_NAME', value: params.BRANCH_NAME_QA),
+                                            string(name: 'BUILD_TYPE', value: params.BUILD_TYPE),
+                                            string(name: 'FLAVOR_TYPE', value: params.FLAVOR_TYPE),
+                                            string(name: 'LANGUAGE', value: params.LANGUAGE),
+                                            string(name: 'APP_VERSION', value: appVersion),
+                                            booleanParam(name: 'CREATE_VISUAL_BASELINE', value: params.E2E_TEST_CREATE_VISUAL_BASELINE),
+                                            string(name: 'DEVICE_NAME', value: deviceToLock_Id_IOS),
+                                            string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
+                                            string(name: 'COMMIT_MESSAGE', value: params.COMMIT_MESSAGE),
+                                            string(name: 'CALLER_BUILD_NUMBER', value: childBuild_IOS.buildVariables.BUILD_NUMBER),
+                                            string(name: 'PULL_REQUEST_SHA', value: params.PULL_REQUEST_SHA)
+                                    ], wait: true
                                 }
-                                build job: 'ios/e2e-test', parameters: [
-                                        string(name: 'BRANCH_NAME', value: params.BRANCH_NAME_QA),
-                                        string(name: 'BUILD_TYPE', value: params.BUILD_TYPE),
-                                        string(name: 'FLAVOR_TYPE', value: params.FLAVOR_TYPE),
-                                        string(name: 'LANGUAGE', value: params.LANGUAGE),
-                                        string(name: 'APP_VERSION', value: appVersion),
-                                        booleanParam(name: 'CREATE_VISUAL_BASELINE', value: params.E2E_TEST_CREATE_VISUAL_BASELINE),
-                                        string(name: 'DEVICE_NAME', value: deviceToLock_Id_IOS),
-                                        string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
-                                        string(name: 'COMMIT_MESSAGE', value: params.COMMIT_MESSAGE),
-                                        string(name: 'CALLER_BUILD_NUMBER', value: childBuild_IOS.buildVariables.BUILD_NUMBER),
-                                        string(name: 'PULL_REQUEST_SHA', value: params.PULL_REQUEST_SHA)
-                                ], wait: true
                             }
                         }
                     }
                 }
-
             }
         }
     }
