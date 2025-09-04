@@ -32,7 +32,6 @@ pipeline {
 
     environment {
         AGENT = 'android-builder'
-        GITHUB_API_TOKEN = credentials('github-api-token')
     }
 
     options {
@@ -89,23 +88,7 @@ pipeline {
                                 constant.pullRequestStatus.pending,
                                 "Cloning and Merging: source: ${params.SOURCE_BRANCH} -> target:${params.TARGET_BRANCH}"
                         )
-                        git branch: params.SOURCE_BRANCH, credentialsId: "${env.GIT_CREDENTIAL_ID}", url: env.GIT_TUUCHO
-                        sh """
-                            git fetch origin ${params.TARGET_BRANCH}:${params.TARGET_BRANCH}
-                            git rebase ${params.TARGET_BRANCH}
-                        """
-                        def N = sh(
-                                script: "git rev-list --count ${params.TARGET_BRANCH}..${params.SOURCE_BRANCH}",
-                                returnStdout: true
-                        ).trim()
-                        log.info "Squash and Merge ${N} commits from ${params.SOURCE_BRANCH} into ${params.TARGET_BRANCH}"
-                        sh """
-                            git config --global user.email "tezov.app@gmail.com"
-                            git config --global user.name "tezov.jenkins"
-                            git checkout ${params.TARGET_BRANCH}
-                            git merge --squash ${params.SOURCE_BRANCH} > /dev/null 2>&1
-                            git commit -m "Merge from ${params.SOURCE_BRANCH}"
-                        """
+                        cloneAndMerge(params.SOURCE_BRANCH, params.TARGET_BRANCH)
                     }
                 }
             }

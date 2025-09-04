@@ -42,10 +42,6 @@ pipeline {
         string(name: 'PULL_REQUEST_SHA', defaultValue: '', description: 'Pull request sha (used to update status on GitHub)')
     }
 
-    environment {
-        GITHUB_API_TOKEN = credentials('github-api-token')
-    }
-
     options {
         parallelsAlwaysFailFast()
         ansiColor('xterm')

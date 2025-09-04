@@ -14,6 +14,7 @@ def setStatus = { status, message ->
 
 def setVisualBaselineStatus = { status, message ->
     setPullRequestStatus(
+            env.GITHUB_CREDENTIAL_ID,
             params.PULL_REQUEST_SHA,
             constant.pullRequestContextStatus.e2e_test_visual_baseline_an,
             status,
@@ -52,7 +53,6 @@ pipeline {
 
     environment {
         AGENT = 'android-qa'
-        GITHUB_API_TOKEN = credentials('github-api-token')
         DEVICE_START_TIMEOUT_IN_SECONDS = '240'
         DEVICE_SHUTDOWN_TIMEOUT_IN_SECONDS = '120'
         PLATFORM = 'android'
