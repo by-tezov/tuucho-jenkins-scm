@@ -1,10 +1,7 @@
 
-
 //TODO later
 - task cache clean (or max size)
 - task report clean (or max size)
 - update description function
-- clone and merge function
 - do the all deploy product android / ios (stage - production)
 - add dsym upload for ios deploy-product
-- split / reduce and scale

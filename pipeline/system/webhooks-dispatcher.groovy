@@ -251,7 +251,6 @@ pipeline {
                 }
             }
         }
-        /* TODO stage deploy */
     }
     post {
         failure {
