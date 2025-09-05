@@ -1,9 +1,6 @@
 @groovy.transform.Field
 def label = [
-        e2eTestAN                  : 'E2E Test Android',
-        e2eTestIOS                 : 'E2E Test iOS',
-        unitTest                   : 'Unit Test',
-        e2eTestCreateVisualBaseline: 'E2E Test - Create Visual Baseline'
+        triggerCI                   : 'Trigger CI'
 ]
 
 @groovy.transform.Field
@@ -52,16 +49,15 @@ def platform = [
 
 @groovy.transform.Field
 def commitOption = [
-        buildType                  : 'build_type',
-        flavorType                 : 'flavor_type',
+        buildType                  : 'build type',
+        flavorType                 : 'flavor type',
         language                   : 'language',
-        branchNameQA               : 'branch_name_qa',
-        e2eTestAN                  : 'e2e_test_an',
-        deviceAN                   : 'device_an',
-        e2eTestIOS                 : 'e2e_test_ios',
-        deviceIOS                  : 'device_ios',
-        e2eTestWaitToSucceed       : 'e2e_test_wait_to_succeed',
-        e2eTestCreateVisualBaseline: 'e2e_test_create_visual_baseline'
+        branchNameQA               : 'QA branch name',
+        e2eTestAN                  : 'Android test',
+        deviceAN                   : 'Android test device',
+        e2eTestIOS                 : 'iOS test',
+        deviceIOS                  : 'iOS test device',
+        e2eTestCreateVisualBaseline: 'create visual baseline'
 ]
 
 @groovy.transform.Field

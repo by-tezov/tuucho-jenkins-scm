@@ -11,6 +11,7 @@ enum KeyPullRequest implements IsKey {
     targetBranch,
     labelAdded,
     labels,
+    description
 }
 
 
