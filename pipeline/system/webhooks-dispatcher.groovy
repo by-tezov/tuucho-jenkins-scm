@@ -73,6 +73,7 @@ pipeline {
                                     pullRequest[KeyPullRequest.state] = pullRequestResponse.state
                                     pullRequest[KeyPullRequest.isDraft] = pullRequestResponse.draft
                                     pullRequest[KeyPullRequest.labels] = pullRequestResponse.labels.collect { it.name }
+                                    pullRequest[KeyPullRequest.description] = pullRequestResponse.body
                                     content[Key.pullRequest] = pullRequest
                                 } catch (Exception ignored) {
                                     log.info "No pull request found"
@@ -121,6 +122,7 @@ pipeline {
                             pullRequest[KeyPullRequest.state] = jsonPayload.pull_request.state
                             pullRequest[KeyPullRequest.isDraft] = jsonPayload.pull_request.draft
                             pullRequest[KeyPullRequest.labels] = jsonPayload.pull_request.labels.collect { it.name }
+                            pullRequest[KeyPullRequest.description] = jsonPayload.pull_request.body
                             if (jsonPayload.label) {
                                 def labelAdded = jsonPayload.label.name
                                 pullRequest[KeyPullRequest.labelAdded] = labelAdded
@@ -147,25 +149,79 @@ pipeline {
                 }
             }
         }
-        stage('parse message option') {
+        stage('parse pull request description') {
             when {
-                expression { content[Key.commitMessage] }
+                expression { content[KeyPullRequest.description] }
             }
             steps {
                 script {
-                    // Search for ci://key1=value1&key2=value2
-                    def ciPrefixPattern = ~/ci:\/\/(\w+=[^&\/\s]*(?:\/[^&\/\s]*)*(?:&\w+=[^&\/\s]*(?:\/[^&\/\s]*)*)*)?/
-                    def matcher = content[Key.commitMessage] =~ ciPrefixPattern
-                    if (matcher) {
-                        def segments = matcher[0][1].split('&')
-                        for (int i = 0; i < segments.length; i++) {
-                            def parts = segments[i].split('=')
-                            if (parts.length == 2) {
-                                def key = parts[0]
-                                def value = parts[1]
-                                option[key] = value
+                    def description = content[KeyPullRequest.description]
+                    def lines = description.split('\n')
+                    for (int i = 0; i < lines.size();) {
+                        def line = lines[i].trim()
+
+                        // match list
+                        def listMatcher = (line =~ /-\s*\*\*(.+?)\*\*:/)
+                        if (listMatcher.matches()) {
+                            def key = listMatcher[0][1]
+                            int j = i + 1
+                            for (; j < lines.size(); j++) {
+                                def subLine = lines[j].replaceAll(/\s+$/, "")
+                                def checkBoxMatcher = (subLine =~ / {2}-\s*\[([ x])\]\s*:\s*(.+)/)
+                                if (checkBoxMatcher.matches()) {
+                                    if (checkBoxMatcher[0][1] == "x") {
+                                        option[key] = checkBoxMatcher[0][2].trim()
+                                    }
+                                } else {
+                                    break
+                                }
                             }
+                            i = j
+                            continue
                         }
+
+                        // match key-value
+                        def keyValueMatcher = (line =~ /\*\*(.+?)\*\*\s*:\s*(.+)/)
+                        if (keyValueMatcher.matches()) {
+                            def key = keyValueMatcher[0][1].trim()
+                            def value = keyValueMatcher[0][2].trim()
+                            option[key] = value
+                            i++
+                            continue
+                        }
+
+                        // match key-value + list
+                        def keyValueListMatcher = (line =~ /-\s*\[([ x])\]\s*:\s*(.+)/)
+                        if (keyValueListMatcher.matches()) {
+                            def checked = keyValueListMatcher[0][1] == "x"
+                            def key = keyValueListMatcher[0][2].trim()
+                            if (checked) {
+                                option[key] = checked
+                            }
+                            i++
+                            if (i < lines.size()) {
+                                def subKeyLine = lines[i].trim()
+                                def subKeyMatch = (subKeyLine =~ /\*\*(.+?)\*\*:/)
+                                if (subKeyMatch.matches()) {
+                                    def subKey = "${key} ${subKeyMatch[0][1].trim()}"
+                                    int j = i + 1
+                                    for (; j < lines.size(); j++) {
+                                        def subLine = lines[j].replaceAll(/\s+$/, "")
+                                        def checkBoxMatcher = (subLine =~ / {2}-\s*\[([ x])\]\s*:\s*(.+)/)
+                                        if (checkBoxMatcher.matches()) {
+                                            if (checked && checkBoxMatcher[0][1] == "x") {
+                                                option[subKey] = checkBoxMatcher[0][2].trim()
+                                            }
+                                        } else {
+                                            break
+                                        }
+                                    }
+                                    i = j
+                                }
+                            }
+                            continue
+                        }
+                        i++
                     }
                     log.info "option: ${option}"
                 }
@@ -181,9 +237,9 @@ pipeline {
                     // and
                     //       push and has_pull_request and not draft
                     //   or
-                    //       pull_request  and not draft and (opened | reopened)
+                    //       pull_request  and not draft and (opened | reopened | edited)
                     //   or
-                    //       label ('E2E Test' or 'Unit Test'')
+                    //       label 'triggerCI'
                     matcher(content) {
                         and {
                             expression(Key.repositoryName) { it == constant.repository.tuucho }
@@ -206,11 +262,7 @@ pipeline {
                                 and {
                                     exact(Key.type, Type.pull)
                                     exact(KeyPullRequest.action, PullRequestAction.labeled)
-                                    or {
-                                        exact(KeyPullRequest.labelAdded, constant.label.e2eTestAN)
-                                        exact(KeyPullRequest.labelAdded, constant.label.e2eTestIOS)
-                                        exact(KeyPullRequest.labelAdded, constant.label.unitTest)
-                                    }
+                                    exact(KeyPullRequest.labelAdded, constant.label.triggerCI)
                                 }
                             }
                         }
@@ -221,13 +273,10 @@ pipeline {
             steps {
                 script {
                     def launchE2eTestAN = option[constant.commitOption.e2eTestAN]?.toBoolean()
-                            ?: content[KeyPullRequest.labels]?.contains(constant.label.e2eTestAN)
                             ?: false
                     def launchE2ETestIOS = option[constant.commitOption.e2eTestIOS]?.toBoolean()
-                            ?: content[KeyPullRequest.labels]?.contains(constant.label.e2eTestIOS)
                             ?: false
                     def e2eTestCreateVisualBaseline = option[constant.commitOption.e2eTestCreateVisualBaseline]?.toBoolean()
-                            ?: content[KeyPullRequest.labels]?.contains(constant.label.e2eTestCreateVisualBaseline)
                             ?: false
 
                     log.info "Triggering pull-request for branch: ${content[Key.sourceBranch]}"
