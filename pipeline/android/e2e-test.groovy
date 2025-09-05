@@ -260,7 +260,7 @@ pipeline {
                     } else {
                         setVisualBaselineStatus(
                                 constant.pullRequestStatus.pending,
-                                "Visual baseline creation successful, need to run again the e2e test"
+                                "Will create visual baseline"
                         )
                     }
                 }
@@ -365,10 +365,17 @@ pipeline {
         }
         success {
             script {
-                setStatus(
-                        constant.pullRequestStatus.success,
-                        "Succeed"
-                )
+                if (!params.CREATE_VISUAL_BASELINE) {
+                    setStatus(
+                            constant.pullRequestStatus.success,
+                            "Succeed"
+                    )
+                } else {
+                    setVisualBaselineStatus(
+                            constant.pullRequestStatus.pending,
+                            "Visual baseline creation successful, need to run again the e2e test"
+                    )
+                }
             }
         }
         failure {
