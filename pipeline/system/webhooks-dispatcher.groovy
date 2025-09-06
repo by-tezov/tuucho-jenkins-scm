@@ -272,7 +272,7 @@ pipeline {
                                 }
                             }
                         }
-                        log { message -> log.info message }
+                        log { message -> log.warning message }
                     }
                 }
             }
