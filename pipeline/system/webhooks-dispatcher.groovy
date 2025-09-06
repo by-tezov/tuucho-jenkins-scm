@@ -63,7 +63,7 @@ pipeline {
                                 content[Key.author] = jsonPayload.head_commit.author.name
                                 content[Key.commitMessage] = jsonPayload.head_commit.message
                                 try {
-                                    def pullRequestResponse = pullRequestResponse = getPullRequestData(
+                                    def pullRequestResponse = getPullRequestData(
                                             content[Key.sourceBranch]
                                     )
                                     def pullRequest = [:]
@@ -243,22 +243,22 @@ pipeline {
                     matcher(content) {
                         and {
                             exact(Key.repositoryName, constant.repository.tuucho)
-                            not { exact(Key.isSourceBranchDeleted, true) }
+                            not { isTrue(Key.isSourceBranchDeleted) }
                             regex(Key.sourceBranch, /(?:epic|feat|chore|fix|release)\/.*/)
                             or {
                                 and {
                                     exact(Key.type, Type.push)
-                                    not { exact(Key.pullRequest, null) }
+                                    not { isNull(Key.pullRequest) }
                                     or {
-                                        exact(KeyPullRequest.isDraft, false)
-                                        expression { option[constant.commitOption.triggerOnDraft]?.toBoolean() == true }
+                                        isFalse(KeyPullRequest.isDraft)
+                                        expression('triggerOnDraft') { option[constant.commitOption.triggerOnDraft]?.toBoolean() == true }
                                     }
                                 }
                                 and {
                                     exact(Key.type, Type.pull)
                                     or {
-                                        exact(KeyPullRequest.isDraft, false)
-                                        expression { option[constant.commitOption.triggerOnDraft]?.toBoolean() == true }
+                                        isFalse(KeyPullRequest.isDraft)
+                                        expression('triggerOnDraft') { option[constant.commitOption.triggerOnDraft]?.toBoolean() == true }
                                     }
                                     or {
                                         exact(KeyPullRequest.action, PullRequestAction.opened)
@@ -310,7 +310,7 @@ pipeline {
     post {
         failure {
             script {
-                log.info payload
+                log.error payload
             }
         }
     }
