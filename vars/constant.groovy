@@ -1,6 +1,6 @@
 @groovy.transform.Field
 def label = [
-        triggerCI                   : 'Trigger CI'
+        triggerCI: 'Trigger CI'
 ]
 
 @groovy.transform.Field
@@ -50,6 +50,7 @@ def platform = [
 @groovy.transform.Field
 def commitOption = [
         buildType                  : 'build type',
+        triggerOnDraft             : 'push trigger CI when on draft',
         flavorType                 : 'flavor type',
         language                   : 'language',
         branchNameQA               : 'QA branch name',
@@ -62,13 +63,13 @@ def commitOption = [
 
 @groovy.transform.Field
 def pullRequestContextStatus = [
-        pull_request: 'CI Check',
-        unit_test   : 'Unit test Check',
-        build_an    : 'Android: Build',
-        e2e_test_an : 'Android: Test End To End',
-        e2e_test_visual_baseline_an: 'Android: Visual baseline',
-        build_ios   : 'iOS: Build',
-        e2e_test_ios: 'iOS: Test End to End',
+        pull_request                : 'CI Check',
+        unit_test                   : 'Unit test Check',
+        build_an                    : 'Android: Build',
+        e2e_test_an                 : 'Android: Test End To End',
+        e2e_test_visual_baseline_an : 'Android: Visual baseline',
+        build_ios                   : 'iOS: Build',
+        e2e_test_ios                : 'iOS: Test End to End',
         e2e_test_visual_baseline_ios: 'iOS: Visual baseline'
 ]
 

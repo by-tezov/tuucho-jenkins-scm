@@ -235,25 +235,31 @@ pipeline {
                     // not deleted
                     // and epic|feat|chore|fix|release
                     // and
-                    //       push and has_pull_request and not draft
+                    //       push and has_pull_request and (not draft or trigger on draft)
                     //   or
                     //       pull_request  and not draft and (opened | reopened | edited)
                     //   or
                     //       label 'triggerCI'
                     matcher(content) {
                         and {
-                            expression(Key.repositoryName) { it == constant.repository.tuucho }
-                            expression(Key.isSourceBranchDeleted) { it == null || it == false }
+                            exact(Key.repositoryName, constant.repository.tuucho)
+                            not { exact(Key.isSourceBranchDeleted, true) }
                             regex(Key.sourceBranch, /(?:epic|feat|chore|fix|release)\/.*/)
                             or {
                                 and {
                                     exact(Key.type, Type.push)
-                                    expression(Key.pullRequest) { it != null }
-                                    exact(KeyPullRequest.isDraft, false)
+                                    not { exact(Key.pullRequest, null) }
+                                    or {
+                                        exact(KeyPullRequest.isDraft, false)
+                                        expression { option[constant.commitOption.triggerOnDraft]?.toBoolean() == true }
+                                    }
                                 }
                                 and {
                                     exact(Key.type, Type.pull)
-                                    exact(KeyPullRequest.isDraft, false)
+                                    or {
+                                        exact(KeyPullRequest.isDraft, false)
+                                        expression { option[constant.commitOption.triggerOnDraft]?.toBoolean() == true }
+                                    }
                                     or {
                                         exact(KeyPullRequest.action, PullRequestAction.opened)
                                         exact(KeyPullRequest.action, PullRequestAction.reopened)
