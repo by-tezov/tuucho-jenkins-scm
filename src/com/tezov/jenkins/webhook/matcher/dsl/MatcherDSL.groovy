@@ -2,6 +2,9 @@ package com.tezov.jenkins.webhook.matcher.dsl
 
 import com.tezov.jenkins.webhook.protocol.Matcher
 import com.tezov.jenkins.webhook.matcher.MatcherExpression
+import com.tezov.jenkins.webhook.matcher.MatcherIsTrue
+import com.tezov.jenkins.webhook.matcher.MatcherIsFalse
+import com.tezov.jenkins.webhook.matcher.MatcherIsNull
 import com.tezov.jenkins.webhook.matcher.MatcherExact
 import com.tezov.jenkins.webhook.matcher.MatcherContains
 import com.tezov.jenkins.webhook.matcher.MatcherRegex
@@ -27,13 +30,28 @@ class MatcherDSL {
         _builder.setOnSuccessClosure(closure)
     }
 
-    void expression(Closure<Boolean> closure) {
-        def matcher = MatcherExpression.with(null, closure)
+    void expression(String description, Closure<Boolean> closure) {
+        def matcher = MatcherExpression.with(description, closure)
         _builder.add(matcher)
     }
 
     void expression(IsKey key, Closure<Boolean> closure) {
         def matcher = MatcherExpression.with(key, closure)
+        _builder.add(matcher)
+    }
+
+    void isTrue(IsKey key) {
+        def matcher = MatcherIsTrue.with(key)
+        _builder.add(matcher)
+    }
+
+    void isFalse(IsKey key) {
+        def matcher = MatcherIsFalse.with(key)
+        _builder.add(matcher)
+    }
+
+    void isNull(IsKey key) {
+        def matcher = MatcherIsNull.with(key)
         _builder.add(matcher)
     }
 
@@ -100,13 +118,28 @@ class MatcherCompositeDSL {
         this._matcher = matcher
     }
 
-    void expression(Closure<Boolean> closure) {
-        def matcher = MatcherExpression.with(null, closure)
+    void expression(String description, Closure<Boolean> closure) {
+        def matcher = MatcherExpression.with(description, closure)
         _matcher.add(matcher)
     }
 
     void expression(IsKey key, Closure<Boolean> closure) {
         def matcher = MatcherExpression.with(key, closure)
+        _matcher.add(matcher)
+    }
+
+    void isTrue(IsKey key) {
+        def matcher = MatcherIsTrue.with(key)
+        _matcher.add(matcher)
+    }
+
+    void isFalse(IsKey key) {
+        def matcher = MatcherIsFalse.with(key)
+        _matcher.add(matcher)
+    }
+
+    void isNull(IsKey key) {
+        def matcher = MatcherIsNull.with(key)
         _matcher.add(matcher)
     }
 
