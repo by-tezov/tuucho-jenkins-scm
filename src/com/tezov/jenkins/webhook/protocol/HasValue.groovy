@@ -11,7 +11,8 @@ class StringValue implements HasValue<String> {
         this.value = value
     }
 
-    @Override String getValue() { return value }
+    @Override
+    String getValue() { return value }
 }
 
 class BooleanValue implements HasValue<Boolean> {
@@ -21,5 +22,6 @@ class BooleanValue implements HasValue<Boolean> {
         this.value = value
     }
 
-    @Override Boolean getValue() { return value }
+    @Override
+    Boolean getValue() { return value }
 }

@@ -27,6 +27,11 @@ class MatcherDSL {
         _builder.setOnSuccessClosure(closure)
     }
 
+    void expression(Closure<Boolean> closure) {
+        def matcher = MatcherExpression.with(null, closure)
+        _builder.add(matcher)
+    }
+
     void expression(IsKey key, Closure<Boolean> closure) {
         def matcher = MatcherExpression.with(key, closure)
         _builder.add(matcher)
@@ -93,6 +98,11 @@ class MatcherCompositeDSL {
 
     MatcherCompositeDSL(MatcherComposite matcher) {
         this._matcher = matcher
+    }
+
+    void expression(Closure<Boolean> closure) {
+        def matcher = MatcherExpression.with(null, closure)
+        _matcher.add(matcher)
     }
 
     void expression(IsKey key, Closure<Boolean> closure) {

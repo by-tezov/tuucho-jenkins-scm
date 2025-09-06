@@ -28,8 +28,7 @@ class MatcherContains extends MatcherKeyBase {
         if (value instanceof Collection || value instanceof String) {
             result = value.contains(hasValue.value)
             log.append("${this.key}: ${value} :CONTAINS: ${hasValue.value} -> ${result}\n")
-        }
-        else {
+        } else {
             result = false
             log.append("${this.key}: ${value} :CONTAINS: ${hasValue.value} -> error type of value received not managed, accept List or String\n")
         }
