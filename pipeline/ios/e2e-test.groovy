@@ -15,7 +15,7 @@ def setStatus = { status, message ->
 def setVisualBaselineStatus = { status, message ->
     setPullRequestStatus(
             params.PULL_REQUEST_SHA,
-            constant.pullRequestContextStatus.e2e_test_visual_baseline_an,
+            constant.pullRequestContextStatus.e2e_test_visual_baseline_ios,
             status,
             "${message}"
     )
