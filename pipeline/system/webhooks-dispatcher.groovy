@@ -291,6 +291,7 @@ pipeline {
                             string(name: 'TARGET_BRANCH', value: content[KeyPullRequest.targetBranch]),
                             string(name: 'BUILD_TYPE', value: option[constant.commitOption.buildType] ?: constant.buildType.debug),
                             string(name: 'FLAVOR_TYPE', value: option[constant.commitOption.flavorType] ?: constant.flavorType.mock),
+                            booleanParam(name: 'UNIT_TEST', value: option[constant.commitOption.unitTest] ?: true),
                             string(name: 'LANGUAGE', value: option[constant.commitOption.language] ?: constant.language.en),
                             string(name: 'BRANCH_NAME_QA', value: option[constant.commitOption.brancheNameQA] ?: 'master'),
                             booleanParam(name: 'E2E_TEST_CREATE_VISUAL_BASELINE', value: e2eTestCreateVisualBaseline),

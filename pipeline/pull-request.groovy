@@ -25,6 +25,7 @@ pipeline {
         string(name: 'TARGET_BRANCH', defaultValue: '', description: 'Target branch to merge (merge is done only locally, not on remote)')
         choice(name: 'BUILD_TYPE', choices: ['debug', 'release'], description: 'Build type')
         choice(name: 'FLAVOR_TYPE', choices: ['mock', 'prod'], description: 'Flavor type')
+        booleanParam(name: 'UNIT_TEST', defaultValue: true, description: 'Launch Unit Tests')
         separator(name: '-QA-', sectionHeader: '-QA-')
         choice(name: 'LANGUAGE', choices: ['en', 'fr'], description: 'Language to use for e2e test')
         string(name: 'BRANCH_NAME_QA', defaultValue: 'master', description: 'Branch name qa of e2e test')
@@ -106,6 +107,9 @@ pipeline {
         }
 
         stage('unit-test') {
+            when {
+                expression { params.UNIT_TEST }
+            }
             steps {
                 script {
                     childUnitTest = build job: 'android/unit-test', parameters: [

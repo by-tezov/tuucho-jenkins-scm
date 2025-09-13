@@ -52,13 +52,14 @@ def commitOption = [
         buildType                  : 'build type',
         triggerOnDraft             : 'push trigger CI when on draft',
         flavorType                 : 'flavor type',
-        language                   : 'language',
+        unitTest                   : 'unit-test',
         branchNameQA               : 'QA branch name',
+        e2eTestCreateVisualBaseline: 'create visual baseline',
+        language                   : 'language',
         e2eTestAN                  : 'Android test',
         deviceAN                   : 'Android test device',
         e2eTestIOS                 : 'iOS test',
-        deviceIOS                  : 'iOS test device',
-        e2eTestCreateVisualBaseline: 'create visual baseline'
+        deviceIOS                  : 'iOS test device'
 ]
 
 @groovy.transform.Field
