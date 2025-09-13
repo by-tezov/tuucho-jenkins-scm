@@ -190,14 +190,12 @@ pipeline {
                             continue
                         }
 
-                        // match key-value + list
+                        // match key-boolean + list
                         def keyValueListMatcher = (line =~ /-\s*\[([ x])\]\s*:\s*(.+)/)
                         if (keyValueListMatcher.matches()) {
                             def checked = keyValueListMatcher[0][1] == "x"
                             def key = keyValueListMatcher[0][2].trim()
-                            if (checked) {
-                                option[key] = checked
-                            }
+                            option[key] = checked
                             i++
                             if (i < lines.size()) {
                                 def subKeyLine = lines[i].trim()
