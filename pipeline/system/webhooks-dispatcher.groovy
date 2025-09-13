@@ -283,21 +283,14 @@ pipeline {
                     def e2eTestCreateVisualBaseline = option[constant.commitOption.e2eTestCreateVisualBaseline]?.toBoolean()
                             ?: false
 
-                    def result = option[constant.commitOption.unitTest] != null
-                            ? option[constant.commitOption.unitTest]?.toBoolean() ?: true
-                            : true
-                    log.info result
-                    log.info option[constant.commitOption.unitTest]
-
                     log.info "Triggering pull-request for branch: ${content[Key.sourceBranch]}"
                     build job: 'pull-request', parameters: [
                             string(name: 'SOURCE_BRANCH', value: content[Key.sourceBranch]),
                             string(name: 'TARGET_BRANCH', value: content[KeyPullRequest.targetBranch]),
                             string(name: 'BUILD_TYPE', value: option[constant.commitOption.buildType] ?: constant.buildType.debug),
                             string(name: 'FLAVOR_TYPE', value: option[constant.commitOption.flavorType] ?: constant.flavorType.mock),
-                            booleanParam(name: 'UNIT_TEST', value: option[constant.commitOption.unitTest] != null
-                                    ? option[constant.commitOption.unitTest]?.toBoolean() ?: true
-                                    : true),
+                            booleanParam(name: 'UNIT_TEST', value: option[constant.commitOption.unitTest] == null ? true
+                                    : option[constant.commitOption.unitTest].toBoolean()),
                             string(name: 'LANGUAGE', value: option[constant.commitOption.language] ?: constant.language.en),
                             string(name: 'BRANCH_NAME_QA', value: option[constant.commitOption.brancheNameQA] ?: 'master'),
                             booleanParam(name: 'E2E_TEST_CREATE_VISUAL_BASELINE', value: e2eTestCreateVisualBaseline),
