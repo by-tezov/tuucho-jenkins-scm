@@ -14,7 +14,6 @@ def setStatus = { status, message ->
 
 def setVisualBaselineStatus = { status, message ->
     setPullRequestStatus(
-            env.GITHUB_CREDENTIAL_ID,
             params.PULL_REQUEST_SHA,
             constant.pullRequestContextStatus.e2e_test_visual_baseline_an,
             status,
@@ -372,13 +371,23 @@ pipeline {
                     )
                 } else {
                     setVisualBaselineStatus(
+                            constant.pullRequestStatus.success,
+                            "Visual baseline creation successful"
+                    )
+                    setStatus(
                             constant.pullRequestStatus.pending,
-                            "Visual baseline creation successful, need to run again the e2e test"
+                            "Need to run again the e2e test due to baseline creation"
                     )
                 }
             }
         }
         failure {
+            if (params.CREATE_VISUAL_BASELINE) {
+                setVisualBaselineStatus(
+                        constant.pullRequestStatus.failure,
+                        "Visual baseline not created due to a job failure"
+                )
+            }
             script {
                 setStatus(
                         constant.pullRequestStatus.failure,
