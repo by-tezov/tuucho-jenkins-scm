@@ -283,6 +283,12 @@ pipeline {
                     def e2eTestCreateVisualBaseline = option[constant.commitOption.e2eTestCreateVisualBaseline]?.toBoolean()
                             ?: false
 
+                    def result = option[constant.commitOption.unitTest] != null
+                            ? option[constant.commitOption.unitTest]?.toBoolean() ?: true
+                            : true
+                    log.info result
+                    log.info option[constant.commitOption.unitTest]
+
                     log.info "Triggering pull-request for branch: ${content[Key.sourceBranch]}"
                     build job: 'pull-request', parameters: [
                             string(name: 'SOURCE_BRANCH', value: content[Key.sourceBranch]),
