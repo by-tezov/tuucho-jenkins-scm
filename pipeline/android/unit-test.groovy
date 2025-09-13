@@ -105,7 +105,7 @@ pipeline {
                             "Unit Testing: Finger crossed..."
                     )
                     replaceFlavorType(constant.flavorType.mock)
-                    runGradleTask('allUnitTestsDebug')
+                    runGradleTask('rootDebugUnitTest')
                     repository.storeReport('build/reports/unit-tests')
                     currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/build/reports/unit-tests/index.html" target="_blank">Tests report</a>"""
                 }
@@ -122,9 +122,9 @@ pipeline {
                             constant.pullRequestStatus.pending,
                             "Coverage reporting"
                     )
-                    runGradleTask('koverHtmlReport')
-                    repository.storeReport('build/reports/kover/html')
-                    currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/build/reports/kover/html/index.html" target="_blank">Coverage report</a>"""
+                    runGradleTask('rootDebugCoverageReport')
+                    repository.storeReport('build/reports/jacoco/html')
+                    currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/build/reports/jacoco/html/index.html" target="_blank">Coverage report</a>"""
                 }
             }
         }
