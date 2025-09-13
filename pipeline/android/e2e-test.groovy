@@ -382,13 +382,13 @@ pipeline {
             }
         }
         failure {
-            if (params.CREATE_VISUAL_BASELINE) {
-                setVisualBaselineStatus(
-                        constant.pullRequestStatus.failure,
-                        "Visual baseline not created due to a job failure"
-                )
-            }
             script {
+                if (params.CREATE_VISUAL_BASELINE) {
+                    setVisualBaselineStatus(
+                            constant.pullRequestStatus.failure,
+                            "Visual baseline not created due to a job failure"
+                    )
+                }
                 setStatus(
                         constant.pullRequestStatus.failure,
                         "Failed: Mm, I can't help you, but maybe the logs will... :"
