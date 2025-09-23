@@ -46,7 +46,7 @@ def applicationLocation(
                     default:
                         error("project.applicationLocation: unknown environment: ${buildType}")
                 }
-                def IOS_BUILD_APP_FILE_PATH = "app/ios/build/Products/${environmentToken}-iphonesimulator"
+                def IOS_BUILD_APP_FILE_PATH = "app/ios/build/Build/Products/${environmentToken}-iphonesimulator"
                 return [
                         path: "${path(constant.agent.ios_builder, jobName, buildNumber)}/${IOS_BUILD_APP_FILE_PATH}",
                         file: "ios.app"
