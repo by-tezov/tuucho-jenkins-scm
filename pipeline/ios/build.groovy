@@ -21,8 +21,7 @@ pipeline {
         separator(name: '-build-', sectionHeader: '-build-')
         string(name: 'SOURCE_BRANCH', defaultValue: '', description: 'Source branch to build')
         string(name: 'TARGET_BRANCH', defaultValue: '', description: 'Target branch to merge (merge is done only locally, not on remote)')
-        choice(name: 'BUILD_TYPE', choices: ['debug', 'release'], description: 'Build type')
-        choice(name: 'FLAVOR_TYPE', choices: ['mock', 'prod'], description: 'Flavor type')
+        choice(name: 'BUILD_TYPE', choices: ['mock', 'dev'], description: 'Build type')
         choice(name: 'DEVICE_NAME', choices: ['iphone_16-18.5-simulator', ''], description: 'Device name to use')
         separator(name: '-system-', sectionHeader: '-system-')
         string(name: 'COMMIT_AUTHOR', defaultValue: '', description: 'Commit author')
@@ -47,9 +46,8 @@ pipeline {
                 script {
                     parallel(
                             'update description': {
-                                log.success "buildType: ${params.BUILD_TYPE}, falvorType: ${params.FLAVOR_TYPE}, sourceBranch: ${params.SOURCE_BRANCH}, targetBranch: ${params.TARGET_BRANCH}"
+                                log.success "buildType: ${params.BUILD_TYPE}, sourceBranch: ${params.SOURCE_BRANCH}, targetBranch: ${params.TARGET_BRANCH}"
                                 addBuildTypeBadge(params.BUILD_TYPE)
-                                addFlavorTypeBadge(params.FLAVOR_TYPE)
                                 currentBuild.displayName = "#${env.BUILD_NUMBER}-#${params.CALLER_BUILD_NUMBER}"
                                 if (params.COMMIT_AUTHOR != '' && params.COMMIT_MESSAGE != '') {
                                     log.info "author: ${params.COMMIT_AUTHOR}, message: ${params.COMMIT_MESSAGE}"
@@ -129,7 +127,6 @@ pipeline {
                 lock(resource: params.DEVICE_NAME) {
                     script {
                         sourceEnv {
-                            replaceFlavorType(params.FLAVOR_TYPE)
                             def arguments = [:]
                             arguments['device'] = params.DEVICE_NAME
                             runGradleTask(":app:ios:${constant.assembleTask[params.BUILD_TYPE]}", arguments)

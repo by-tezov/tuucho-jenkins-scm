@@ -23,8 +23,7 @@ pipeline {
         separator(name: '-Build-', sectionHeader: '-build-')
         string(name: 'SOURCE_BRANCH', defaultValue: '', description: 'Source branch to build')
         string(name: 'TARGET_BRANCH', defaultValue: '', description: 'Target branch to merge (merge is done only locally, not on remote)')
-        choice(name: 'BUILD_TYPE', choices: ['debug', 'release'], description: 'Build type')
-        choice(name: 'FLAVOR_TYPE', choices: ['mock', 'prod'], description: 'Flavor type')
+        choice(name: 'BUILD_TYPE', choices: ['mock', 'dev'], description: 'Build type')
         booleanParam(name: 'UNIT_TEST', defaultValue: true, description: 'Launch Unit Tests')
         separator(name: '-QA-', sectionHeader: '-QA-')
         choice(name: 'LANGUAGE', choices: ['en', 'fr'], description: 'Language to use for e2e test')
@@ -54,7 +53,7 @@ pipeline {
                 script {
                     parallel(
                             'update description': {
-                                log.success "buildType: ${params.BUILD_TYPE}, falvorType: ${params.FLAVOR_TYPE}, sourceBranch: ${params.SOURCE_BRANCH}, targetBranch: ${params.TARGET_BRANCH}"
+                                log.success "buildType: ${params.BUILD_TYPE}, sourceBranch: ${params.SOURCE_BRANCH}, targetBranch: ${params.TARGET_BRANCH}"
                                 if (params.E2E_TEST_AN) {
                                     addPlatformBadge(constant.platform.android)
                                 }
@@ -62,7 +61,6 @@ pipeline {
                                     addPlatformBadge(constant.platform.ios)
                                 }
                                 addBuildTypeBadge(params.BUILD_TYPE)
-                                addFlavorTypeBadge(params.FLAVOR_TYPE)
                                 currentBuild.displayName = "#${env.BUILD_NUMBER}-#${params.CALLER_BUILD_NUMBER}"
                                 if (params.COMMIT_AUTHOR != '' && params.COMMIT_MESSAGE != '') {
                                     log.info "author: ${params.COMMIT_AUTHOR}, message: ${params.COMMIT_MESSAGE}"
@@ -76,7 +74,7 @@ pipeline {
                             'status pending': {
                                 setStatus(
                                         constant.pullRequestStatus.pending,
-                                        "build type:${params.BUILD_TYPE}, flavor type:${params.FLAVOR_TYPE}"
+                                        "build type:${params.BUILD_TYPE}"
                                 )
                             },
                             'prepare variables': {
@@ -115,8 +113,6 @@ pipeline {
                     childUnitTest = build job: 'android/unit-test', parameters: [
                             string(name: 'SOURCE_BRANCH', value: params.SOURCE_BRANCH),
                             string(name: 'TARGET_BRANCH', value: params.TARGET_BRANCH),
-                            string(name: 'BUILD_TYPE', value: params.BUILD_TYPE),
-                            string(name: 'FLAVOR_TYPE', value: params.FLAVOR_TYPE),
                             string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
                             string(name: 'COMMIT_MESSAGE', value: params.COMMIT_MESSAGE),
                             string(name: 'CALLER_BUILD_NUMBER', value: env.BUILD_NUMBER),
@@ -138,7 +134,6 @@ pipeline {
                                     string(name: 'SOURCE_BRANCH', value: params.SOURCE_BRANCH),
                                     string(name: 'TARGET_BRANCH', value: params.TARGET_BRANCH),
                                     string(name: 'BUILD_TYPE', value: params.BUILD_TYPE),
-                                    string(name: 'FLAVOR_TYPE', value: params.FLAVOR_TYPE),
                                     string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
                                     string(name: 'COMMIT_MESSAGE', value: params.COMMIT_MESSAGE),
                                     string(name: 'CALLER_BUILD_NUMBER', value: childUnitTest?.buildVariables?.BUILD_NUMBER ?: env.BUILD_NUMBER),
@@ -157,7 +152,6 @@ pipeline {
                                     string(name: 'SOURCE_BRANCH', value: params.SOURCE_BRANCH),
                                     string(name: 'TARGET_BRANCH', value: params.TARGET_BRANCH),
                                     string(name: 'BUILD_TYPE', value: params.BUILD_TYPE),
-                                    string(name: 'FLAVOR_TYPE', value: params.FLAVOR_TYPE),
                                     string(name: 'DEVICE_NAME', value: deviceToLock_Id_IOS),
                                     string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
                                     string(name: 'COMMIT_MESSAGE', value: params.COMMIT_MESSAGE),
@@ -190,7 +184,6 @@ pipeline {
                                     string(name: 'BRANCH_NAME', value: params.BRANCH_NAME_QA),
                                     string(name: 'APP_VERSION', value: appVersion),
                                     string(name: 'BUILD_TYPE', value: params.BUILD_TYPE),
-                                    string(name: 'FLAVOR_TYPE', value: params.FLAVOR_TYPE),
                                     string(name: 'LANGUAGE', value: params.LANGUAGE),
                                     booleanParam(name: 'CREATE_VISUAL_BASELINE', value: params.E2E_TEST_CREATE_VISUAL_BASELINE),
                                     string(name: 'DEVICE_NAME', value: deviceToLock_Id_AN),
@@ -219,7 +212,6 @@ pipeline {
                             build job: 'ios/e2e-test', parameters: [
                                     string(name: 'BRANCH_NAME', value: params.BRANCH_NAME_QA),
                                     string(name: 'BUILD_TYPE', value: params.BUILD_TYPE),
-                                    string(name: 'FLAVOR_TYPE', value: params.FLAVOR_TYPE),
                                     string(name: 'LANGUAGE', value: params.LANGUAGE),
                                     string(name: 'APP_VERSION', value: appVersion),
                                     booleanParam(name: 'CREATE_VISUAL_BASELINE', value: params.E2E_TEST_CREATE_VISUAL_BASELINE),

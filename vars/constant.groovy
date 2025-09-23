@@ -10,21 +10,15 @@ def language = [
 ]
 
 @groovy.transform.Field
-def flavorType = [
-        mock: 'mock',
-        prod: 'prod'
-]
-
-@groovy.transform.Field
 def buildType = [
-        debug  : 'debug',
-        release: 'release'
+        mock: 'mock',
+        dev: 'dev'
 ]
 
 @groovy.transform.Field
 def assembleTask = [
-        debug  : 'assembleDebug',
-        release: 'assembleRelease'
+        mock  : 'assembleMock',
+        dev: 'assembleDev'
 ]
 
 @groovy.transform.Field
@@ -51,7 +45,6 @@ def platform = [
 def commitOption = [
         buildType                  : 'build type',
         triggerOnDraft             : 'push trigger CI when on draft',
-        flavorType                 : 'flavor type',
         unitTest                   : 'unit-test',
         branchNameQA               : 'QA branch name',
         e2eTestCreateVisualBaseline: 'create visual baseline',

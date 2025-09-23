@@ -287,8 +287,7 @@ pipeline {
                     build job: 'pull-request', parameters: [
                             string(name: 'SOURCE_BRANCH', value: content[Key.sourceBranch]),
                             string(name: 'TARGET_BRANCH', value: content[KeyPullRequest.targetBranch]),
-                            string(name: 'BUILD_TYPE', value: option[constant.commitOption.buildType] ?: constant.buildType.debug),
-                            string(name: 'FLAVOR_TYPE', value: option[constant.commitOption.flavorType] ?: constant.flavorType.mock),
+                            string(name: 'BUILD_TYPE', value: option[constant.commitOption.buildType] ?: constant.buildType.mock),
                             booleanParam(name: 'UNIT_TEST', value: option[constant.commitOption.unitTest] == null ? true
                                     : option[constant.commitOption.unitTest].toBoolean()),
                             string(name: 'LANGUAGE', value: option[constant.commitOption.language] ?: constant.language.en),

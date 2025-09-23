@@ -16,11 +16,11 @@ def applicationLocation(
         case constant.platform.android:
             def environmentToken = null
             switch (buildType) {
-                case constant.buildType.debug:
-                    environmentToken = 'debug'
+                case constant.buildType.mock:
+                    environmentToken = 'mock'
                     break
-                case constant.buildType.release:
-                    environmentToken = 'release'
+                case constant.buildType.dev:
+                    environmentToken = 'dev'
                     break
                 default:
                     error("project.applicationLocation: unknown environment: ${buildType}")
@@ -37,12 +37,12 @@ def applicationLocation(
             if (variant == null) {
                 def environmentToken = null
                 switch (buildType) {
-                    case constant.buildType.debug:
+                    case constant.buildType.mock:
                         environmentToken = 'Debug'
                         break
-                    case constant.buildType.release:
-                        environmentToken = 'Release'
-                        break
+//                    case constant.buildType.dev:
+//                        environmentToken = 'Release' //Not done yet
+//                        break
                     default:
                         error("project.applicationLocation: unknown environment: ${buildType}")
                 }
