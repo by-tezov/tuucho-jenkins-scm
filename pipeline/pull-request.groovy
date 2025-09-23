@@ -155,7 +155,7 @@ pipeline {
                                     string(name: 'DEVICE_NAME', value: deviceToLock_Id_IOS),
                                     string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
                                     string(name: 'COMMIT_MESSAGE', value: params.COMMIT_MESSAGE),
-                                    string(name: 'CALLER_BUILD_NUMBER', value: childUnitTest.buildVariables.BUILD_NUMBER ?: env.BUILD_NUMBER),
+                                    string(name: 'CALLER_BUILD_NUMBER', value: childUnitTest?.buildVariables?.BUILD_NUMBER ?: env.BUILD_NUMBER),
                                     string(name: 'PULL_REQUEST_SHA', value: params.PULL_REQUEST_SHA)
                             ], wait: true
                         }
