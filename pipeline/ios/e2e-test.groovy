@@ -35,8 +35,7 @@ pipeline {
     parameters {
         string(name: 'BRANCH_NAME', defaultValue: 'master', description: 'Branch name to use')
         string(name: 'APP_VERSION', defaultValue: '', description: 'Application version')
-        choice(name: 'BUILD_TYPE', choices: ['debug', 'release'], description: 'Build type')
-        choice(name: 'FLAVOR_TYPE', choices: ['mock', 'prod'], description: 'Flavor type')
+        choice(name: 'BUILD_TYPE', choices: ['mock', 'dev'], description: 'Build type')
         choice(name: 'LANGUAGE', choices: ['en', 'fr'], description: 'Language')
         booleanParam(name: 'QUICK_ESCAPE_TEST_ONLY', defaultValue: true, description: 'Execute only "Quick Escape Test"')
         string(name: 'QUICK_ESCAPE_TEST_TAGS', defaultValue: '@_quickEscape', description: 'Test tags to use for "Quick Escape Test" (space separated)')
@@ -70,9 +69,8 @@ pipeline {
                 script {
                     parallel(
                             'update description': {
-                                log.success "buildType: ${params.BUILD_TYPE}, falvorType: ${params.FLAVOR_TYPE}, qaBranch: ${params.BRANCH_NAME}"
+                                log.success "buildType: ${params.BUILD_TYPE}, qaBranch: ${params.BRANCH_NAME}"
                                 addBuildTypeBadge(params.BUILD_TYPE)
-                                addFlavorTypeBadge(params.FLAVOR_TYPE)
                                 currentBuild.displayName = "#${env.BUILD_NUMBER}-#${params.CALLER_BUILD_NUMBER}"
                                 if (params.COMMIT_AUTHOR != '' && params.COMMIT_MESSAGE != '') {
                                     log.info "author: ${params.COMMIT_AUTHOR}, message: ${params.COMMIT_MESSAGE}"
@@ -101,7 +99,6 @@ pipeline {
                                 arguments['language'] = params.LANGUAGE
                                 arguments['platform'] = env.PLATFORM
                                 arguments['buildType'] = params.BUILD_TYPE
-                                arguments['flavorType'] = params.FLAVOR_TYPE
                                 arguments['appVersion'] = params.APP_VERSION
                                 arguments['deviceName'] = "${params.DEVICE_NAME}"
                                 arguments['hash'] = hash(arguments)

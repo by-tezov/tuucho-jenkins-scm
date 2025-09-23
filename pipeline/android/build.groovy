@@ -21,8 +21,7 @@ pipeline {
         separator(name: '-build-', sectionHeader: '-build-')
         string(name: 'SOURCE_BRANCH', defaultValue: '', description: 'Source branch to build')
         string(name: 'TARGET_BRANCH', defaultValue: '', description: 'Target branch to merge (merge is done only locally, not on remote)')
-        choice(name: 'BUILD_TYPE', choices: ['debug', 'release'], description: 'Build type')
-        choice(name: 'FLAVOR_TYPE', choices: ['mock', 'prod'], description: 'Flavor type')
+        choice(name: 'BUILD_TYPE', choices: ['mock', 'dev'], description: 'Build type')
         separator(name: '-system-', sectionHeader: '-system-')
         string(name: 'COMMIT_AUTHOR', defaultValue: '', description: 'Commit author')
         string(name: 'COMMIT_MESSAGE', defaultValue: '', description: 'Commit message')
@@ -45,9 +44,8 @@ pipeline {
                 script {
                     parallel(
                             'update description': {
-                                log.success "buildType: ${params.BUILD_TYPE}, falvorType: ${params.FLAVOR_TYPE}, sourceBranch: ${params.SOURCE_BRANCH}, targetBranch: ${params.TARGET_BRANCH}"
+                                log.success "buildType: ${params.BUILD_TYPE}, sourceBranch: ${params.SOURCE_BRANCH}, targetBranch: ${params.TARGET_BRANCH}"
                                 addBuildTypeBadge(params.BUILD_TYPE)
-                                addFlavorTypeBadge(params.FLAVOR_TYPE)
                                 currentBuild.displayName = "#${env.BUILD_NUMBER}-#${params.CALLER_BUILD_NUMBER}"
                                 if (params.COMMIT_AUTHOR != '' && params.COMMIT_MESSAGE != '') {
                                     log.info "author: ${params.COMMIT_AUTHOR}, message: ${params.COMMIT_MESSAGE}"
@@ -104,7 +102,6 @@ pipeline {
                             constant.pullRequestStatus.pending,
                             "Building"
                     )
-                    replaceFlavorType(params.FLAVOR_TYPE)
                     runGradleTask(":app:android:${constant.assembleTask[params.BUILD_TYPE]}")
                     //TODO, use agent-repository to store apk and update getApplicationPath
                 }
