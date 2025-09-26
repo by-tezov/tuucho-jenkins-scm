@@ -12,13 +12,17 @@ def language = [
 @groovy.transform.Field
 def buildType = [
         mock: 'mock',
-        dev: 'dev'
+        dev: 'dev',
+        stage: 'stage',
+        prod: 'prod',
 ]
 
 @groovy.transform.Field
 def assembleTask = [
         mock  : 'assembleMock',
-        dev: 'assembleDev'
+        dev: 'assembleDev',
+        stage: 'assembleStage',
+        prod: 'assembleProd'
 ]
 
 @groovy.transform.Field
