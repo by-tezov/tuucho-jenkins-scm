@@ -35,7 +35,7 @@ pipeline {
     parameters {
         string(name: 'BRANCH_NAME', defaultValue: 'master', description: 'Branch name to use')
         string(name: 'APP_VERSION', defaultValue: '', description: 'Application version')
-        choice(name: 'BUILD_TYPE', choices: ['mock', 'dev'], description: 'Build type')
+        choice(name: 'BUILD_TYPE', choices: ['mock', 'dev','stage','prod'], description: 'Build type')
         choice(name: 'LANGUAGE', choices: ['en', 'fr'], description: 'Language')
         booleanParam(name: 'QUICK_ESCAPE_TEST_ONLY', defaultValue: true, description: 'Execute only "Quick Escape Test"')
         string(name: 'QUICK_ESCAPE_TEST_TAGS', defaultValue: '@_quickEscape', description: 'Test tags to use for "Quick Escape Test" (space separated)')

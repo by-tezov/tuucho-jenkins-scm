@@ -21,7 +21,7 @@ pipeline {
         separator(name: '-build-', sectionHeader: '-build-')
         string(name: 'SOURCE_BRANCH', defaultValue: '', description: 'Source branch to build')
         string(name: 'TARGET_BRANCH', defaultValue: '', description: 'Target branch to merge (merge is done only locally, not on remote)')
-        choice(name: 'BUILD_TYPE', choices: ['mock', 'dev'], description: 'Build type')
+        choice(name: 'BUILD_TYPE', choices: ['mock', 'dev','stage','prod'], description: 'Build type')
         choice(name: 'DEVICE_NAME', choices: ['iphone_16-18.5-simulator', ''], description: 'Device name to use')
         separator(name: '-system-', sectionHeader: '-system-')
         string(name: 'COMMIT_AUTHOR', defaultValue: '', description: 'Commit author')
@@ -107,7 +107,7 @@ pipeline {
                 }
                 script {
                     sourceEnv {
-                        runGradleTask(':app:ios:bundleInstall')
+                        runGradleTask(':sample:ios:bundleInstall')
                     }
                 }
             }
@@ -129,7 +129,7 @@ pipeline {
                         sourceEnv {
                             def arguments = [:]
                             arguments['device'] = params.DEVICE_NAME
-                            runGradleTask(":app:ios:${constant.assembleTask[params.BUILD_TYPE]}", arguments)
+                            runGradleTask(":sample:ios:${constant.assembleTask[params.BUILD_TYPE]}", arguments)
                             //TODO, use agent-repository to store apk and update getApplicationPath
                         }
                     }
