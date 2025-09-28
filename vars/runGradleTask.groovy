@@ -3,7 +3,7 @@ def call(
         Map params = null,
         String folder = 'project'
 ) {
-    def paramString = params?.collect { key, value -> "-P${key}='${value}'" }?.join(' ') ?: ''
+    def paramString = params?.collect { key, value -> "-P${key}='" + value + "'" }?.join(' ') ?: ''
     if (folder) {
         dir(folder) {
             sh "./gradlew ${task} ${paramString} --no-daemon"

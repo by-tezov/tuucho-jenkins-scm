@@ -1,4 +1,4 @@
-@Library('library@master') _
+@Library('library@chore/update-jenkins-with-properties-files') _
 
 def setStatus = { status, message ->
     setPullRequestStatus(
@@ -49,7 +49,7 @@ pipeline {
                                 currentBuild.displayName = "#${env.BUILD_NUMBER}-#${params.CALLER_BUILD_NUMBER}"
                                 if (params.COMMIT_AUTHOR != '' && params.COMMIT_MESSAGE != '') {
                                     log.info "author: ${params.COMMIT_AUTHOR}, message: ${params.COMMIT_MESSAGE}"
-                                    currentBuild.description = "${params.COMMIT_AUTHOR} - ${params.COMMIT_MESSAGE}<br>"
+                                    currentBuild.description = "${params.COMMIT_AUTHOR}<br>"
                                 } else {
                                     currentBuild.description = ''
                                 }
@@ -92,7 +92,7 @@ pipeline {
             }
         }
 
-        stage('build') {
+        stage('build lib') {
             options {
                 timeout(time: 10, unit: 'MINUTES')
             }
@@ -100,9 +100,50 @@ pipeline {
                 script {
                     setStatus(
                             constant.pullRequestStatus.pending,
-                            "Building"
+                            "Building lib"
                     )
-                    runGradleTask(":sample:android:${constant.assembleTask[params.BUILD_TYPE]}")
+                    withCredentials([
+                            file(credentialsId: env.MAVEN_SIGNING_KEY, variable: 'MAVEN_SIGNING_KEY_FILE'),
+                            string(credentialsId: env.MAVEN_SIGNING_PASSWORD, variable: 'MAVEN_SIGNING_PASSWORD')
+                    ]) {
+                        withEnv(["MAVEN_SIGNING_KEY="+readFile(MAVEN_SIGNING_KEY_FILE)]) {
+                            runGradleTask("rootPublishProdToMavenLocal")
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('add sample properties') {
+            options {
+                timeout(time: 1, unit: 'MINUTES')
+            }
+            steps {
+                script { //TODO temp hack, do better asap
+                    dir('project/sample') {
+                        sh '''
+                            cat > config.properties <<EOF
+                                localDatabaseFile=database.db
+                                serverUrlAndroid=http://backend-tuucho:3000
+                                serverUrlIos=http://192.168.1.10/backend
+                            EOF
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('build sample app') {
+            options {
+                timeout(time: 10, unit: 'MINUTES')
+            }
+            steps {
+                script {
+                    setStatus(
+                            constant.pullRequestStatus.pending,
+                            "Building sample app"
+                    )
+                    runGradleTask(":app:android:${constant.assembleTask[params.BUILD_TYPE]}", null, 'project/sample')
                     //TODO, use agent-repository to store apk and update getApplicationPath
                 }
             }

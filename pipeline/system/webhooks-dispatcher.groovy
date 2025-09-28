@@ -1,4 +1,4 @@
-@Library('library@master') _
+@Library('library@chore/update-jenkins-with-properties-files') _
 
 import com.tezov.jenkins.webhook.WebhookContent
 import com.tezov.jenkins.webhook.enums.Key
