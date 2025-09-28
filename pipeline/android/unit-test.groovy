@@ -1,4 +1,4 @@
-@Library('library@master') _
+@Library('library@chore/update-jenkins-with-properties-files') _
 
 def setStatus = { status, message ->
     setPullRequestStatus(
@@ -47,7 +47,7 @@ pipeline {
                                 currentBuild.displayName = "#${env.BUILD_NUMBER}-#${CALLER_BUILD_NUMBER}"
                                 if (params.COMMIT_AUTHOR != '' && params.COMMIT_MESSAGE != '') {
                                     log.info "author: ${params.COMMIT_AUTHOR}, message: ${params.COMMIT_MESSAGE}"
-                                    currentBuild.description = "${params.COMMIT_AUTHOR} - ${params.COMMIT_MESSAGE}<br>"
+                                    currentBuild.description = "${params.COMMIT_AUTHOR}<br>"
                                 } else {
                                     currentBuild.description = ''
                                 }
@@ -102,7 +102,7 @@ pipeline {
                     )
                     runGradleTask('rootMockUnitTest')
                     repository.storeReport('build/reports/unit-tests')
-                    currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/build/reports/unit-tests/index.html" target="_blank">Tests report</a>"""
+                    currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/build/reports/unit-tests/index.html" target="_blank">Tests</a>"""
                 }
             }
         }
@@ -119,7 +119,7 @@ pipeline {
                     )
                     runGradleTask('rootMockCoverageReport')
                     repository.storeReport('build/reports/jacoco/html')
-                    currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/build/reports/jacoco/html/index.html" target="_blank">Coverage report</a>"""
+                    currentBuild.description += """<a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/build/reports/jacoco/html/index.html" target="_blank"> / Coverage</a>"""
                 }
             }
         }

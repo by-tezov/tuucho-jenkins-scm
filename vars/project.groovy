@@ -25,7 +25,7 @@ def applicationLocation(
                 default:
                     error("project.applicationLocation: unknown environment: ${buildType}")
             }
-            def ANDROID_BUILD_APP_FILE_PATH = "sample/android/build/outputs/apk/${environmentToken}"
+            def ANDROID_BUILD_APP_FILE_PATH = "sample/app/android/build/outputs/apk/${environmentToken}"
             return [
                     path: "${path(constant.agent.android_builder, jobName, buildNumber)}/${ANDROID_BUILD_APP_FILE_PATH}",
                     file: "android-${buildType}.apk"
@@ -40,13 +40,13 @@ def applicationLocation(
                     case constant.buildType.mock:
                         environmentToken = 'Debug'
                         break
-//                    case constant.buildType.dev:
-//                        environmentToken = 'Release' //Not done yet
-//                        break
+                    case constant.buildType.dev:
+                        environmentToken = 'Debug'
+                        break
                     default:
                         error("project.applicationLocation: unknown environment: ${buildType}")
                 }
-                def IOS_BUILD_APP_FILE_PATH = "sample/ios/build/Build/Products/${environmentToken}-iphonesimulator"
+                def IOS_BUILD_APP_FILE_PATH = "sample/app/ios/build/Build/Products/${environmentToken}-iphonesimulator"
                 return [
                         path: "${path(constant.agent.ios_builder, jobName, buildNumber)}/${IOS_BUILD_APP_FILE_PATH}",
                         file: "ios.app"
