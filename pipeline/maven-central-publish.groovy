@@ -3,15 +3,18 @@
 def setStatus = { status, message ->
     setPullRequestStatus(
             params.PULL_REQUEST_SHA,
-            constant.pullRequestContextStatus.build_ios,
+            constant.pullRequestContextStatus.maven,
             status,
             "${message}"
     )
 }
 
+String deploymentId = null
+
 pipeline {
     agent {
         node {
+//            label 'ios-publication'
             label 'ios-builder'
             customWorkspace "workspace/${env.JOB_NAME}/_${env.BUILD_NUMBER}"
         }
@@ -19,10 +22,10 @@ pipeline {
 
     parameters {
         separator(name: '-build-', sectionHeader: '-build-')
-        string(name: 'SOURCE_BRANCH', defaultValue: '', description: 'Source branch to build')
-        string(name: 'TARGET_BRANCH', defaultValue: '', description: 'Target branch to merge into (merge is done only locally, not on remote)')
-        choice(name: 'BUILD_TYPE', choices: ['mock', 'dev','stage','prod'], description: 'Build type')
-        choice(name: 'DEVICE_NAME', choices: ['iphone_16-18.5-simulator', ''], description: 'Device name to use')
+        string(name: 'SOURCE_BRANCH', defaultValue: 'release/0.0.1-alpha12', description: 'Source branch to build')
+        string(name: 'TARGET_BRANCH', defaultValue: 'master', description: 'Target branch to merge into')
+        booleanParam(name: 'UPLOAD', defaultValue: true, description: 'Upload to Maven Central')
+        booleanParam(name: 'RELEASE', defaultValue: false, description: 'Release the publication')
         separator(name: '-system-', sectionHeader: '-system-')
         string(name: 'COMMIT_AUTHOR', defaultValue: '', description: 'Commit author')
         string(name: 'COMMIT_MESSAGE', defaultValue: '', description: 'Commit message')
@@ -32,7 +35,6 @@ pipeline {
 
     environment {
         AGENT = 'ios-builder'
-        PLATFORM = 'ios'
     }
 
     options {
@@ -46,8 +48,7 @@ pipeline {
                 script {
                     parallel(
                             'update description': {
-                                log.success "buildType: ${params.BUILD_TYPE}, sourceBranch: ${params.SOURCE_BRANCH}, targetBranch: ${params.TARGET_BRANCH}"
-                                addBuildTypeBadge(params.BUILD_TYPE)
+                                log.success "sourceBranch: ${params.SOURCE_BRANCH}, targetBranch: ${params.TARGET_BRANCH}"
                                 currentBuild.displayName = "#${env.BUILD_NUMBER}-#${params.CALLER_BUILD_NUMBER}"
                                 if (params.COMMIT_AUTHOR != '' && params.COMMIT_MESSAGE != '') {
                                     log.info "author: ${params.COMMIT_AUTHOR}, message: ${params.COMMIT_MESSAGE}"
@@ -61,7 +62,7 @@ pipeline {
                             'status pending': {
                                 setStatus(
                                         constant.pullRequestStatus.pending,
-                                        "Buid job initiated: build type"
+                                        "Publishing job initiated"
                                 )
                             },
                             'clean workspaces': {
@@ -77,6 +78,8 @@ pipeline {
             }
         }
 
+        // TODO look for PR release, take the next one after last tag // remove branch source and target
+
         stage('clone and merge') {
             options {
                 timeout(time: 5, unit: 'MINUTES')
@@ -88,13 +91,13 @@ pipeline {
                                 constant.pullRequestStatus.pending,
                                 "Cloning and Merging: source: ${params.SOURCE_BRANCH} -> target:${params.TARGET_BRANCH}"
                         )
+                        cloneAndMerge(params.SOURCE_BRANCH, params.TARGET_BRANCH)
                     }
-                    cloneAndMerge(params.SOURCE_BRANCH, params.TARGET_BRANCH)
                 }
             }
         }
 
-        stage('build lib') {
+        stage('Publishing lib') {
             options {
                 timeout(time: 10, unit: 'MINUTES')
             }
@@ -102,13 +105,16 @@ pipeline {
                 script {
                     setStatus(
                             constant.pullRequestStatus.pending,
-                            "Building lib"
+                            "Publishing lib"
                     )
+                    if (getIsSnapshot() == 'true') {
+                        error("❌ SNAPSHOT version found in catalog lib — release build cannot continue")
+                    }
                     withCredentials([
                             file(credentialsId: env.MAVEN_SIGNING_KEY, variable: 'MAVEN_SIGNING_KEY_FILE'),
-                            string(credentialsId: env.MAVEN_SIGNING_PASSWORD, variable: 'MAVEN_SIGNING_PASSWORD')
+                            string(credentialsId: env.MAVEN_SIGNING_PASSWORD, variable: 'MAVEN_SIGNING_PASSWORD'),
                     ]) {
-                        withEnv(["MAVEN_SIGNING_KEY="+readFile(MAVEN_SIGNING_KEY_FILE)]) {
+                        withEnv(["MAVEN_SIGNING_KEY=" + readFile(MAVEN_SIGNING_KEY_FILE)]) {
                             sourceEnv {
                                 runGradleTask("rootPublishProdToMavenLocal")
                             }
@@ -118,75 +124,99 @@ pipeline {
             }
         }
 
-        stage('add sample properties') {
+        stage('Upload to Maven Central') {
             options {
-                timeout(time: 1, unit: 'MINUTES')
+                timeout(time: 5, unit: 'MINUTES')
             }
-            steps {
-                script { //TODO temp hack, do better asap
-                    dir('project/sample') {
-                        sh '''
-                            cat > config.properties <<EOF
-                                localDatabaseFile=database.db
-                                serverUrlAndroid=http://backend-tuucho:3000
-                                serverUrlIos=http://192.168.1.10/backend
-                            EOF
-                        '''
-                    }
-                }
-            }
-        }
-
-        stage('bundle install') {
-            options {
-                timeout(time: 15, unit: 'MINUTES')
+            when {
+                expression { params.UPLOAD }
             }
             steps {
                 script {
                     setStatus(
                             constant.pullRequestStatus.pending,
-                            "Bundle install"
+                            "Upload lib"
                     )
-                }
-                script {
-                    sourceEnv {
-                        runGradleTask(':app:ios:iosBundleInstall', null, 'project/sample')
-                    }
-                }
-            }
-        }
+                    dir('project/.m2') {
+                        def fileName = "tuucho-0.0.1-alpha13" //TODO retrieve version from catalog
+                        sh "zip -r ${fileName}.zip ."
+                        withCredentials([
+                                string(credentialsId: env.MAVEN_AUTHORIZATION_TOKEN, variable: 'MAVEN_AUTHORIZATION_TOKEN'),
+                        ]) {
+                            def response = httpRequest(
+                                    httpMode: 'POST',
+                                    url: 'https://central.sonatype.com/api/v1/publisher/upload',
+                                    multipartName: 'bundle',
+                                    uploadFile: "${fileName}.zip",
+                                    customHeaders: [
+                                            [name: 'User-Agent', value: 'Jenkins'],
+                                            [name: 'Authorization', value: "Bearer $MAVEN_AUTHORIZATION_TOKEN"]
+                                    ],
+                                    validResponseCodes: '201'
+                            )
+                            deploymentId = response.content
+                            log.info "Deployment ID: ${response.content}"
 
-        stage('build sample app') {
-            options {
-                timeout(time: 20, unit: 'MINUTES')
-            }
-            steps {
-                script {
-                    setStatus(
-                            constant.pullRequestStatus.pending,
-                            "building"
-                    )
-                }
-                lock(resource: params.DEVICE_NAME) {
-                    script {
-                        sourceEnv {
-                            def arguments = [:]
-                            arguments['device'] = params.DEVICE_NAME
-                            runGradleTask(":app:ios:${constant.assembleTask[params.BUILD_TYPE]}", arguments, 'project/sample')
-                            //TODO, use agent-repository to store apk and update getApplicationPath
                         }
                     }
                 }
             }
         }
+
+        stage('Release publication') {
+            options {
+                timeout(time: 1, unit: 'MINUTES')
+            }
+            when {
+                expression { params.RELEASE && deploymentId != null }
+            }
+            steps {
+                script {
+                    setStatus(
+                            constant.pullRequestStatus.pending,
+                            "Release publication"
+                    )
+                    withCredentials([
+                            string(credentialsId: env.MAVEN_AUTHORIZATION_TOKEN, variable: 'MAVEN_AUTHORIZATION_TOKEN'),
+                    ]) {
+                        // TODO: Check the status Validated first (can take some times, up to 5 mn)
+
+                        httpRequest(
+                                httpMode: 'POST',
+                                url: "https://central.sonatype.com/api/v1/publisher/deployment/${deploymentId}",
+                                customHeaders: [
+                                        [name: 'User-Agent', value: 'Jenkins'],
+                                        [name: 'Authorization', value: "Bearer $MAVEN_AUTHORIZATION_TOKEN"]
+                                ],
+                                validResponseCodes: '204'
+                        )
+                    }
+                }
+            }
+        }
+
+        // TODO wait deployment success, then merge the release PR on master + tag + github release ?
     }
+
     post {
         success {
             script {
-                setStatus(
-                        constant.pullRequestStatus.success,
-                        "Succeed"
-                )
+                if (params.RELEASE && deploymentId != null) {
+                    setStatus(
+                            constant.pullRequestStatus.pending,
+                            "Succeed: Wait for PUBLISHED state"
+                    )
+                } else if (params.UPLOAD) {
+                    setStatus(
+                            constant.pullRequestStatus.pending,
+                            "Succeed: Need to manually publish"
+                    )
+                }  else {
+                    setStatus(
+                            constant.pullRequestStatus.success,
+                            "Dry run Succeed"
+                    )
+                }
             }
         }
         failure {
@@ -198,6 +228,4 @@ pipeline {
             }
         }
     }
-
 }
-

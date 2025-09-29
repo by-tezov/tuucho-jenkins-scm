@@ -20,7 +20,7 @@ pipeline {
     parameters {
         separator(name: '-build-', sectionHeader: '-build-')
         string(name: 'SOURCE_BRANCH', defaultValue: '', description: 'Source branch to build')
-        string(name: 'TARGET_BRANCH', defaultValue: '', description: 'Target branch to merge (merge is done only locally, not on remote)')
+        string(name: 'TARGET_BRANCH', defaultValue: '', description: 'Target branch to merge into (merge is done only locally, not on remote)')
         choice(name: 'BUILD_TYPE', choices: ['mock', 'dev','stage','prod'], description: 'Build type')
         separator(name: '-system-', sectionHeader: '-system-')
         string(name: 'COMMIT_AUTHOR', defaultValue: '', description: 'Commit author')

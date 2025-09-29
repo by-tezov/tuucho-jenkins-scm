@@ -10,6 +10,11 @@ def call(Closure body) {
             envVars = readZshrcEnv(zshrcPath)
             break
 
+        case 'maven-publish':
+            def zshrcPath = "${env.HOME}/${env.CICD_FOLDER}/builder/.zshrc" //TODO replace by ios-publication when done
+            envVars = readZshrcEnv(zshrcPath)
+            break
+
         default:
             error("sourceEnv: nothing was source of ${env.JOB_NAME}")
     }
