@@ -1,4 +1,4 @@
-@Library('library@master') _
+@Library('library@chore/update-jenkins-with-properties-files') _
 
 pipeline {
     agent none
@@ -6,6 +6,7 @@ pipeline {
     parameters {
         booleanParam(name: 'INSTALL_BUILDER', defaultValue: false, description: 'Install builder agent')
         booleanParam(name: 'INSTALL_QA', defaultValue: false, description: 'Install qa agent')
+        booleanParam(name: 'INSTALL_PUBLICATION', defaultValue: false, description: 'Install publication agent')
     }
 
     options {
@@ -29,6 +30,10 @@ pipeline {
                     if (params.INSTALL_QA) {
                         sh "cp ${env.JENKINS_HELPER_FILES}/mac-agent-qa-installer.bash helper/"
                         stash name: 'mac-agent-qa-installer', includes: 'helper/mac-agent-qa-installer.bash'
+                    }
+                    if (params.INSTALL_PUBLICATION) {
+                        sh "cp ${env.JENKINS_HELPER_FILES}/mac-agent-publication-installer.bash helper/"
+                        stash name: 'mac-agent-publication-installer', includes: 'helper/mac-agent-publication-installer.bash'
                     }
                 }
             }
@@ -57,6 +62,20 @@ pipeline {
                     node('ios-qa') {
                         unstash 'mac-agent-qa-installer'
                         sh "bash helper/mac-agent-qa-installer.bash"
+                    }
+                }
+            }
+        }
+
+        stage('Agent Publication Install') {
+            when {
+                expression { params.INSTALL_PUBLICATION }
+            }
+            steps {
+                script {
+                    node('ios-publication') {
+                        unstash 'mac-agent-publication-installer'
+                        sh "bash helper/mac-agent-publication-installer.bash"
                     }
                 }
             }
