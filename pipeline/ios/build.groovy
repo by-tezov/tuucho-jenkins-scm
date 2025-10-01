@@ -1,4 +1,4 @@
-@Library('library@chore/update-jenkins-with-properties-files') _
+@Library('library@master') _
 
 def setStatus = { status, message ->
     setPullRequestStatus(

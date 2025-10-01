@@ -1,4 +1,4 @@
-@Library('library@chore/update-jenkins-with-properties-files') _
+@Library('library@master') _
 
 Boolean appiumHasBeenStarted = false
 Boolean deviceHasBeenStarted = false

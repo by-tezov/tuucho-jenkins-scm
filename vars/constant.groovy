@@ -11,18 +11,18 @@ def language = [
 
 @groovy.transform.Field
 def buildType = [
-        mock: 'mock',
-        dev: 'dev',
+        mock : 'mock',
+        dev  : 'dev',
         stage: 'stage',
-        prod: 'prod',
+        prod : 'prod',
 ]
 
 @groovy.transform.Field
 def assembleTask = [
-        mock  : 'assembleMock',
-        dev: 'assembleDev',
+        mock : 'assembleMock',
+        dev  : 'assembleDev',
         stage: 'assembleStage',
-        prod: 'assembleProd'
+        prod : 'assembleProd'
 ]
 
 @groovy.transform.Field
@@ -69,7 +69,8 @@ def pullRequestContextStatus = [
         build_ios                   : 'iOS: Build',
         e2e_test_ios                : 'iOS: Test End to End',
         e2e_test_visual_baseline_ios: 'iOS: Visual baseline',
-        maven: 'Maven publication'
+        maven                       : 'Maven publication',
+        merge_request               : 'Merge request'
 ]
 
 @groovy.transform.Field
