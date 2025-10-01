@@ -30,10 +30,6 @@ pipeline {
                         sh "cp ${env.JENKINS_HELPER_FILES}/mac-agent-qa-installer.bash helper/"
                         stash name: 'mac-agent-qa-installer', includes: 'helper/mac-agent-qa-installer.bash'
                     }
-                    if (params.INSTALL_PUBLICATION) {
-                        sh "cp ${env.JENKINS_HELPER_FILES}/mac-agent-publication-installer.bash helper/"
-                        stash name: 'mac-agent-publication-installer', includes: 'helper/mac-agent-publication-installer.bash'
-                    }
                 }
             }
         }
