@@ -23,7 +23,8 @@ def call(
                 requestBody: requestBody,
                 customHeaders: [
                         [name: 'User-Agent', value: 'Jenkins'],
-                        [name: 'Authorization', value: 'Bearer ' + GITHUB_TOKEN]
+                        [name: 'Authorization', value: 'Bearer ' + GITHUB_TOKEN],
+                        [name: 'X-GitHub-Api-Version', value: '2022-11-28']
                 ],
                 validResponseCodes: '201'
         )
