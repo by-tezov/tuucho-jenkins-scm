@@ -3,7 +3,7 @@
 def setStatus = { status, message ->
     setPullRequestStatus(
             params.PULL_REQUEST_SHA,
-            constant.pullRequestContextStatus.build_an,
+            constant.pullRequestContextStatus.merge_request,
             status,
             "${message}"
     )
@@ -20,13 +20,13 @@ pipeline {
     parameters {
         separator(name: '-build-', sectionHeader: '-build-')
         string(name: 'SOURCE_BRANCH', defaultValue: '', description: 'Source branch to build')
-        string(name: 'TARGET_BRANCH', defaultValue: '', description: 'Target branch to merge into (merge is done only locally, not on remote)')
-        choice(name: 'BUILD_TYPE', choices: ['mock', 'dev','stage','prod'], description: 'Build type')
+        string(name: 'TARGET_BRANCH', defaultValue: 'master', description: 'Target branch to merge into')
         separator(name: '-system-', sectionHeader: '-system-')
         string(name: 'COMMIT_AUTHOR', defaultValue: '', description: 'Commit author')
         string(name: 'COMMIT_MESSAGE', defaultValue: '', description: 'Commit message')
         string(name: 'CALLER_BUILD_NUMBER', defaultValue: '', description: 'Caller build number')
-        string(name: 'PULL_REQUEST_SHA', defaultValue: '', description: 'Pull request sha (used to update status on GitHub)')
+        string(name: 'PULL_REQUEST_NUMBER', defaultValue: '', description: 'Pull request number')
+        string(name: 'PULL_REQUEST_SHA', defaultValue: '', description: 'Pull request sha ')
     }
 
     environment {
@@ -44,8 +44,7 @@ pipeline {
                 script {
                     parallel(
                             'update description': {
-                                log.success "buildType: ${params.BUILD_TYPE}, sourceBranch: ${params.SOURCE_BRANCH}, targetBranch: ${params.TARGET_BRANCH}"
-                                addBuildTypeBadge(params.BUILD_TYPE)
+                                log.success "sourceBranch: ${params.SOURCE_BRANCH}, targetBranch: ${params.TARGET_BRANCH}"
                                 currentBuild.displayName = "#${env.BUILD_NUMBER}-#${params.CALLER_BUILD_NUMBER}"
                                 if (params.COMMIT_AUTHOR != '' && params.COMMIT_MESSAGE != '') {
                                     log.info "author: ${params.COMMIT_AUTHOR}, message: ${params.COMMIT_MESSAGE}"
@@ -59,7 +58,7 @@ pipeline {
                             'status pending': {
                                 setStatus(
                                         constant.pullRequestStatus.pending,
-                                        "Buid job initiated"
+                                        "Publishing job initiated"
                                 )
                             },
                             'clean workspaces': {
@@ -92,7 +91,22 @@ pipeline {
             }
         }
 
-        stage('build lib') {
+        stage('Merge Pull Request') {
+            options {
+                timeout(time: 5, unit: 'MINUTES')
+            }
+            steps {
+                script {
+                    setStatus(
+                            constant.pullRequestStatus.pending,
+                            "Merging pull request"
+                    )
+                    log.info "Merging pull request"
+                }
+            }
+        }
+
+        stage('Tag and Release') {
             options {
                 timeout(time: 10, unit: 'MINUTES')
             }
@@ -100,60 +114,20 @@ pipeline {
                 script {
                     setStatus(
                             constant.pullRequestStatus.pending,
-                            "Building lib"
+                            "Tagging and Release"
                     )
-                    withCredentials([
-                            file(credentialsId: env.MAVEN_SIGNING_KEY, variable: 'MAVEN_SIGNING_KEY_FILE'),
-                            string(credentialsId: env.MAVEN_SIGNING_PASSWORD, variable: 'MAVEN_SIGNING_PASSWORD')
-                    ]) {
-                        withEnv(["MAVEN_SIGNING_KEY="+readFile(MAVEN_SIGNING_KEY_FILE)]) {
-                            runGradleTask("rootPublishProdToMavenLocal")
-                        }
-                    }
+                    log.info "Tagging and Release"
                 }
             }
         }
 
-        stage('add sample properties') {
-            options {
-                timeout(time: 1, unit: 'MINUTES')
-            }
-            steps {
-                script { //TODO temp hack, do better asap
-                    dir('project/sample') {
-                        sh '''
-                            cat > config.properties <<EOF
-                                localDatabaseFile=database.db
-                                serverUrlAndroid=http://backend-tuucho:3000
-                                serverUrlIos=http://192.168.1.10/backend
-                            EOF
-                        '''
-                    }
-                }
-            }
-        }
-
-        stage('build sample app') {
-            options {
-                timeout(time: 10, unit: 'MINUTES')
-            }
-            steps {
-                script {
-                    setStatus(
-                            constant.pullRequestStatus.pending,
-                            "Building sample app"
-                    )
-                    runGradleTask(":app:android:${constant.assembleTask[params.BUILD_TYPE]}", null, 'project/sample')
-                    //TODO, use agent-repository to store apk and update getApplicationPath
-                }
-            }
-        }
     }
+
     post {
         success {
             script {
                 setStatus(
-                        constant.pullRequestStatus.success,
+                        status,
                         "Succeed"
                 )
             }
@@ -167,5 +141,4 @@ pipeline {
             }
         }
     }
-
 }

@@ -7,9 +7,10 @@ def call(
         String credentialsId = env.GITHUB_API_TOKEN_ID
 ) {
     if (!sha) {
-        echo "Skipping GitHub status update because SHA is empty"
+        log.warning "Skipping GitHub status update because SHA is empty"
         return
     }
+    log.info "$context: $status</br>$description"
     def requestBody = """{
         "state": "${status}",
         "context": "${context}",

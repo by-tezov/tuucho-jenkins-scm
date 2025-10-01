@@ -1,5 +1,8 @@
+TODO:
 
-- ios publication agent + webhook maven to release and tag prod
+- merge request pipeline
+- plug the merge request at the end of the pull request pipeline if the condition allow it
+- add a trigger Tag to merge in Master
 
 //TODO later
 - task cache clean (or max size)
