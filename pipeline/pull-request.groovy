@@ -39,7 +39,9 @@ pipeline {
         string(name: 'COMMIT_AUTHOR', defaultValue: '', description: 'Commit author')
         string(name: 'COMMIT_MESSAGE', defaultValue: '', description: 'Commit message')
         string(name: 'CALLER_BUILD_NUMBER', defaultValue: '', description: 'Caller build number')
-        string(name: 'PULL_REQUEST_SHA', defaultValue: '', description: 'Pull request sha (used to update status on GitHub)')
+        string(name: 'PULL_REQUEST_NUMBER', defaultValue: '', description: 'Pull request number')
+        string(name: 'PULL_REQUEST_SHA', defaultValue: '', description: 'Pull request sha')
+        string(name: 'PULL_REQUEST_LABELS', defaultValue: '', description: 'Pull request labels ')
     }
 
     options {
@@ -76,6 +78,11 @@ pipeline {
                                         constant.pullRequestStatus.pending,
                                         "build type:${params.BUILD_TYPE}"
                                 )
+                            },
+                            'remove trigger label': {
+                                if (params.PULL_REQUEST_LABELS.contains(constant.label.triggerCI)) {
+                                    removeLabels(params.PULL_REQUEST_NUMBER, [constant.label.triggerCI])
+                                }
                             },
                             'prepare variables': {
                                 // android device lock
