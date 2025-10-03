@@ -11,6 +11,7 @@ def call(
     withCredentials([string(credentialsId: credentialsId, variable: 'GITHUB_TOKEN')]) {
         labels.each { label ->
             def encodedLabel = URLEncoder.encode(label, "UTF-8")
+                    .replace("+", "%20")
             def url = "https://api.github.com/repos/${repositoryFullName}/issues/${number}/labels/${encodedLabel}"
             log.info "Removing label '${label}' from PR #${number}"
             httpRequest(
