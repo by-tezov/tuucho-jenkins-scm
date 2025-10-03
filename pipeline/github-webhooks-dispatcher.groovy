@@ -300,7 +300,7 @@ pipeline {
                             string(name: 'COMMIT_AUTHOR', value: content[Key.author]),
                             string(name: 'COMMIT_MESSAGE', value: content[Key.commitMessage]),
                             string(name: 'CALLER_BUILD_NUMBER', value: env.BUILD_NUMBER),
-                            string(name: 'PULL_REQUEST_NUMBER', value: content[KeyPullRequest.number]),
+                            string(name: 'PULL_REQUEST_NUMBER', value: content[KeyPullRequest.number]?.toString()),
                             string(name: 'PULL_REQUEST_SHA', value: content[KeyPullRequest.sha]),
                             string(name: 'PULL_REQUEST_LABELS', value: content[KeyPullRequest.labels]?.join(','))
                     ], wait: false
