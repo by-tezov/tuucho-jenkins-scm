@@ -94,6 +94,23 @@ pipeline {
             }
         }
 
+        stage('api validation') {
+            options {
+                timeout(time: 2, unit: 'MINUTES')
+            }
+            steps {
+                script {
+                    setStatus(
+                            constant.pullRequestStatus.pending,
+                            "Api validating"
+                    )
+                    sourceEnv {
+                        runGradleTask("rootValidateProdApi")
+                    }
+                }
+            }
+        }
+
         stage('build lib') {
             options {
                 timeout(time: 10, unit: 'MINUTES')
@@ -123,15 +140,11 @@ pipeline {
                 timeout(time: 1, unit: 'MINUTES')
             }
             steps {
-                script { //TODO temp hack, do better asap
+                script {
                     dir('project/sample') {
-                        sh '''
-                            cat > config.properties <<EOF
-                                localDatabaseFile=database.db
-                                serverUrlAndroid=http://backend-tuucho:3000
-                                serverUrlIos=http://192.168.1.10/backend
-                            EOF
-                        '''
+                        withCredentials([file(credentialsId: env.TUUCHO_CONFIG_PROPERTIES, variable: 'TUUCHO_CONFIG_PROPERTIES')]) {
+                            sh "cp \"$TUUCHO_CONFIG_PROPERTIES\" config.properties"
+                        }
                     }
                 }
             }
