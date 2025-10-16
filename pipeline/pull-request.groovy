@@ -34,7 +34,7 @@ pipeline {
         choice(name: 'DEVICE_NAME_AN', choices: ['android-36-simulator-fluxbox', 'android-36-simulator-standalone', ''], description: 'Device name to use for Android')
         separator(name: '-QA-iOS-', sectionHeader: '-QA-iOS-')
         booleanParam(name: 'E2E_TEST_IOS', defaultValue: false, description: 'Build APP and launch iOS end to end tests')
-        choice(name: 'DEVICE_NAME_IOS', choices: ['iphone_16-18.5-simulator', ''], description: 'Device name to use for iOS')
+        choice(name: 'DEVICE_NAME_IOS', choices: ['iphone_16-18.5-simulator', 'iphone_16-26.0-simulator', ''], description: 'Device name to use for iOS')
         separator(name: '-system-', sectionHeader: '-system-')
         string(name: 'COMMIT_AUTHOR', defaultValue: '', description: 'Commit author')
         string(name: 'COMMIT_MESSAGE', defaultValue: '', description: 'Commit message')
