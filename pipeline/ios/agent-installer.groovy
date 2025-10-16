@@ -14,6 +14,9 @@ pipeline {
 
     stages {
         stage('stash bash installer') {
+            options {
+                timeout(time: 1, unit: 'MINUTES')
+            }
             agent {
                 node {
                     label 'master'
@@ -35,6 +38,9 @@ pipeline {
         }
 
         stage('Agent Builder Install') {
+            options {
+                timeout(time: 25, unit: 'MINUTES')
+            }
             when {
                 expression { params.INSTALL_BUILDER }
             }
@@ -49,6 +55,9 @@ pipeline {
         }
 
         stage('Agent QA Install') {
+            options {
+                timeout(time: 15, unit: 'MINUTES')
+            }
             when {
                 expression { params.INSTALL_QA }
             }
