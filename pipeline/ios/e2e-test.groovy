@@ -41,7 +41,7 @@ pipeline {
         string(name: 'QUICK_ESCAPE_TEST_TAGS', defaultValue: '@_quickEscape', description: 'Test tags to use for "Quick Escape Test" (space separated)')
         string(name: 'TESTS_TAGS', defaultValue: '', description: 'Test tags to use for "All Tests" (space separated) - if empty, all tests available be will executed ')
         booleanParam(name: 'CREATE_VISUAL_BASELINE', defaultValue: false, description: 'Create visual baseline')
-        choice(name: 'DEVICE_NAME', choices: ['iphone_16-18.5-simulator', 'iphone_16-26.0-simulator'], description: 'Device name to use')
+        choice(name: 'DEVICE_NAME', choices: ['iphone_16-26.0-simulator'], description: 'Device name to use')
         separator(name: '-system-', sectionHeader: '-system-')
         string(name: 'CALLER_BUILD_NUMBER', defaultValue: '', description: 'Caller build number')
         string(name: 'PULL_REQUEST_SHA', defaultValue: '', description: 'Pull request sha (used to update status on GitHub)')
