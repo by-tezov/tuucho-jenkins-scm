@@ -1,10 +1,10 @@
 TODO:
-
 - merge request pipeline
 - plug the merge request at the end of the pull request pipeline if the condition allow it
 - add a trigger Tag to merge in Master
 
 //TODO later
+- clean build config properties rewriting
 - task cache clean (or max size)
 - task report clean (or max size)
 - update description function

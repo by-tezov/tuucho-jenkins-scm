@@ -1,6 +1,7 @@
 @Library('library@master') _
 
 Boolean appiumHasBeenStarted = false
+String backendName = null
 Boolean deviceHasBeenStarted = false
 
 def setStatus = { status, message ->
@@ -33,9 +34,10 @@ pipeline {
     }
 
     parameters {
-        string(name: 'BRANCH_NAME', defaultValue: 'master', description: 'Branch name to use')
+        string(name: 'BRANCH_NAME_QA', defaultValue: 'master', description: 'Branch name QA to use')
+        string(name: 'BRANCH_NAME_BACKEND', defaultValue: 'master', description: 'Branch name Backend to use')
         string(name: 'APP_VERSION', defaultValue: '', description: 'Application version')
-        choice(name: 'BUILD_TYPE', choices: ['mock', 'dev','stage','prod'], description: 'Build type')
+        choice(name: 'BUILD_TYPE', choices: ['mock', 'dev', 'stage', 'prod'], description: 'Build type')
         choice(name: 'LANGUAGE', choices: ['en', 'fr'], description: 'Language')
         booleanParam(name: 'QUICK_ESCAPE_TEST_ONLY', defaultValue: true, description: 'Execute only "Quick Escape Test"')
         string(name: 'QUICK_ESCAPE_TEST_TAGS', defaultValue: '@_quickEscape', description: 'Test tags to use for "Quick Escape Test" (space separated)')
@@ -69,7 +71,7 @@ pipeline {
                 script {
                     parallel(
                             'update description': {
-                                log.success "buildType: ${params.BUILD_TYPE}, qaBranch: ${params.BRANCH_NAME}"
+                                log.success "buildType: ${params.BUILD_TYPE}, qaBranch: ${params.BRANCH_NAME_QA}, backendBranch: ${params.BRANCH_NAME_BACKEND}"
                                 addBuildTypeBadge(params.BUILD_TYPE)
                                 currentBuild.displayName = "#${env.BUILD_NUMBER}-#${params.CALLER_BUILD_NUMBER}"
                                 if (params.COMMIT_AUTHOR != '' && params.COMMIT_MESSAGE != '') {
@@ -78,7 +80,7 @@ pipeline {
                                 } else {
                                     currentBuild.description = ''
                                 }
-                                currentBuild.description += "${params.BRANCH_NAME}"
+                                currentBuild.description += "${params.BRANCH_NAME_QA} + ${params.BRANCH_NAME_BACKEND}"
                             },
                             'status pending': {
                                 setStatus(
@@ -123,11 +125,11 @@ pipeline {
                 script {
                     setStatus(
                             constant.pullRequestStatus.pending,
-                            "Cloning: source: ${params.BRANCH_NAME}"
+                            "Cloning: source: ${params.BRANCH_NAME_QA}"
                     )
                 }
                 dir('project') {
-                    git branch: "${params.BRANCH_NAME}", credentialsId: "${env.GIT_CREDENTIAL_ID}", url: "${env.GIT_TUUCHO_QA}"
+                    git branch: "${params.BRANCH_NAME_QA}", credentialsId: "${env.GIT_CREDENTIAL_ID}", url: "${env.GIT_TUUCHO_QA}"
                 }
             }
         }
@@ -157,7 +159,7 @@ pipeline {
                 script {
                     setStatus(
                             constant.pullRequestStatus.pending,
-                            "Launching Simulator, Appium"
+                            "Launching Simulator, Appium, Backend"
                     )
                     parallel(
                             'start appium': {
@@ -168,6 +170,30 @@ pipeline {
                                             def result = sh(script: "docker start ${env.PLATFORM}-appium", returnStdout: true).trim()
                                             if (result != "true") {
                                                 error("failed to start appium-${env.PLATFORM}")
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            'start backend': {
+                                node('master') {
+                                    stage('start backend') {
+                                        if (params.BUILD_TYPE == constant.buildType.dev) {
+                                            timeout(time: 2, unit: 'MINUTES') {
+                                                backendName = getBackendContainerName(constant.platform.android, params.CALLER_BUILD_NUMBER)
+                                                def result = sh(script: "docker create-and-start $backendName ${params.BRANCH_NAME_BACKEND}", returnStdout: true).trim()
+                                                if (result != "true") {
+                                                    error("failed to start ${backendName}")
+                                                }
+                                            }
+                                            timeout(time: 5, unit: 'MINUTES') {
+                                                while (true) {
+                                                    def result = sh(script: "docker status ${backendName}", returnStdout: true).trim()
+                                                    if (result == "true") {
+                                                        break
+                                                    }
+                                                    sleep time: 5, unit: 'SECONDS'
+                                                }
                                             }
                                         }
                                     }
@@ -194,7 +220,8 @@ pipeline {
                                         }
                                     }
                                 }
-                            })
+                            }
+                    )
                 }
             }
         }
@@ -321,7 +348,7 @@ pipeline {
     post {
         always {
             script {
-                if (deviceHasBeenStarted || appiumHasBeenStarted) {
+                if (deviceHasBeenStarted || backendName != null || appiumHasBeenStarted) {
                     node('master') {
                         parallel(
                                 'stop appium': {
@@ -333,6 +360,16 @@ pipeline {
                                             timeout(time: 2, unit: 'MINUTES') {
                                                 sh "docker stop ${env.PLATFORM}-appium"
                                                 appiumHasBeenStarted = false
+                                            }
+                                        }
+                                    }
+                                },
+                                'stop backend': {
+                                    stage('stop backend') {
+                                        if (backendName) {
+                                            timeout(time: 2, unit: 'MINUTES') {
+                                                sh "docker stop-and-delete ${backendName}"
+                                                backendName = null
                                             }
                                         }
                                     }
@@ -394,4 +431,3 @@ pipeline {
         }
     }
 }
-

@@ -292,6 +292,7 @@ pipeline {
                                     : option[constant.commitOption.unitTest].toBoolean()),
                             string(name: 'LANGUAGE', value: option[constant.commitOption.language] ?: constant.language.en),
                             string(name: 'BRANCH_NAME_QA', value: option[constant.commitOption.brancheNameQA] ?: 'master'),
+                            string(name: 'BRANCH_NAME_BACKEND', value: option[constant.commitOption.brancheNameBackend] ?: 'master'),
                             booleanParam(name: 'E2E_TEST_CREATE_VISUAL_BASELINE', value: e2eTestCreateVisualBaseline),
                             booleanParam(name: 'E2E_TEST_AN', value: launchE2eTestAN),
                             string(name: 'DEVICE_NAME_AN', value: option[constant.commitOption.deviceAN] ?: ''),
