@@ -28,6 +28,7 @@ pipeline {
         separator(name: '-QA-', sectionHeader: '-QA-')
         choice(name: 'LANGUAGE', choices: ['en', 'fr'], description: 'Language to use for e2e test')
         string(name: 'BRANCH_NAME_QA', defaultValue: 'master', description: 'Branch name qa of e2e test')
+        string(name: 'BRANCH_NAME_BACKEND', defaultValue: 'master', description: 'Branch name backend of e2e test')
         booleanParam(name: 'E2E_TEST_CREATE_VISUAL_BASELINE', defaultValue: false, description: 'Create visual baseline')
         separator(name: '-QA-Android-', sectionHeader: '-QA-Android-')
         booleanParam(name: 'E2E_TEST_AN', defaultValue: false, description: 'Build APK and launch Android end to end tests')
@@ -188,7 +189,8 @@ pipeline {
                                 )
                             }
                             build job: 'android/e2e-test', parameters: [
-                                    string(name: 'BRANCH_NAME', value: params.BRANCH_NAME_QA),
+                                    string(name: 'BRANCH_NAME_QA', value: params.BRANCH_NAME_QA),
+                                    string(name: 'BRANCH_NAME_BACKEND', value: params.BRANCH_NAME_BACKEND),
                                     string(name: 'APP_VERSION', value: appVersion),
                                     string(name: 'BUILD_TYPE', value: params.BUILD_TYPE),
                                     string(name: 'LANGUAGE', value: params.LANGUAGE),
@@ -217,7 +219,8 @@ pipeline {
                                 )
                             }
                             build job: 'ios/e2e-test', parameters: [
-                                    string(name: 'BRANCH_NAME', value: params.BRANCH_NAME_QA),
+                                    string(name: 'BRANCH_NAME_QA', value: params.BRANCH_NAME_QA),
+                                    string(name: 'BRANCH_NAME_BACKEND', value: params.BRANCH_NAME_BACKEND),
                                     string(name: 'BUILD_TYPE', value: params.BUILD_TYPE),
                                     string(name: 'LANGUAGE', value: params.LANGUAGE),
                                     string(name: 'APP_VERSION', value: appVersion),

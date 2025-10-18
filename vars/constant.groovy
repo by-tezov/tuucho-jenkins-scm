@@ -51,6 +51,7 @@ def commitOption = [
         triggerOnDraft             : 'push trigger CI when on draft',
         unitTest                   : 'unit-test',
         branchNameQA               : 'QA branch name',
+        branchNameBackend          : 'Backend branch name',
         e2eTestCreateVisualBaseline: 'create visual baseline',
         language                   : 'language',
         e2eTestAN                  : 'Android test',
