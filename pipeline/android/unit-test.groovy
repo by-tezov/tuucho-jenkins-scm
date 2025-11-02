@@ -90,6 +90,42 @@ pipeline {
             }
         }
 
+        stage('ktlint validation') {
+            options {
+                timeout(time: 2, unit: 'MINUTES')
+            }
+            steps {
+                script {
+                    setStatus(
+                            constant.pullRequestStatus.pending,
+                            "KtLint validating"
+                    )
+                    runGradleTask("rootKtLintReport")
+                    //TODO
+//                    repository.storeReport('build/reports/ktlint')
+//                    currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/build/reports/ktlint/index.html" target="_blank">KtLint</a>"""
+                }
+            }
+        }
+
+        stage('detekt validation') {
+            options {
+                timeout(time: 2, unit: 'MINUTES')
+            }
+            steps {
+                script {
+                    setStatus(
+                            constant.pullRequestStatus.pending,
+                            "Detekt validating"
+                    )
+                    runGradleTask("rootDetektReport")
+                    //TODO
+//                    repository.storeReport('build/reports/detekt')
+//                    currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/build/reports/detekt/index.html" target="_blank">Detekt</a>"""
+                }
+            }
+        }
+
         stage('unit test') {
             options {
                 timeout(time: 15, unit: 'MINUTES')
