@@ -119,9 +119,8 @@ pipeline {
                             "Detekt validating"
                     )
                     runGradleTask("rootDetektReport")
-                    //TODO
-//                    repository.storeReport('build/reports/detekt')
-//                    currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/build/reports/detekt/index.html" target="_blank">Detekt</a>"""
+                    repository.storeReport('build/reports/detekt')
+                    currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/build/reports/detekt/detekt-aggregated.html" target="_blank">Detekt</a>"""
                 }
             }
         }

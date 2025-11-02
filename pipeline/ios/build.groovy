@@ -187,7 +187,7 @@ pipeline {
                             )
                         }
                     } else {
-                        //TODO when needed
+                        error("Build type not implemented yet: ${params.BUILD_TYPE }")
                     }
                 }
             }
