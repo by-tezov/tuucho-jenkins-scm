@@ -24,6 +24,7 @@ pipeline {
         string(name: 'SOURCE_BRANCH', defaultValue: '', description: 'Source branch to build')
         string(name: 'TARGET_BRANCH', defaultValue: '', description: 'Target branch to merge (merge is done only locally, not on remote)')
         choice(name: 'BUILD_TYPE', choices: ['mock', 'dev'], description: 'Build type')
+        booleanParam(name: 'DANGER', defaultValue: true, description: 'Launch Danger')
         booleanParam(name: 'UNIT_TEST', defaultValue: true, description: 'Launch Unit Tests')
         separator(name: '-QA-', sectionHeader: '-QA-')
         choice(name: 'LANGUAGE', choices: ['en', 'fr'], description: 'Language to use for e2e test')
@@ -112,13 +113,32 @@ pipeline {
             }
         }
 
+        stage('danger') {
+            when {
+                expression { params.DANGER }
+            }
+            steps {
+                script {
+                    childUnitTest = build job: 'common/danger', parameters: [
+                            string(name: 'SOURCE_BRANCH', value: params.SOURCE_BRANCH),
+                            string(name: 'TARGET_BRANCH', value: params.TARGET_BRANCH),
+                            string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
+                            string(name: 'COMMIT_MESSAGE', value: params.COMMIT_MESSAGE),
+                            string(name: 'CALLER_BUILD_NUMBER', value: env.BUILD_NUMBER),
+                            string(name: 'PULL_REQUEST_NUMBER', value: params.PULL_REQUEST_NUMBER),
+                            string(name: 'PULL_REQUEST_SHA', value: params.PULL_REQUEST_SHA)
+                    ], wait: true
+                }
+            }
+        }
+
         stage('unit-test') {
             when {
                 expression { params.UNIT_TEST }
             }
             steps {
                 script {
-                    childUnitTest = build job: 'android/unit-test', parameters: [
+                    childUnitTest = build job: 'common/unit-test', parameters: [
                             string(name: 'SOURCE_BRANCH', value: params.SOURCE_BRANCH),
                             string(name: 'TARGET_BRANCH', value: params.TARGET_BRANCH),
                             string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),

@@ -61,7 +61,7 @@ pipeline {
                             'status pending': {
                                 setStatus(
                                         constant.pullRequestStatus.pending,
-                                        "Buid job initiated: build type"
+                                        "Build job initiated: build type"
                                 )
                             },
                             'clean workspaces': {
@@ -86,10 +86,10 @@ pipeline {
                     script {
                         setStatus(
                                 constant.pullRequestStatus.pending,
-                                "Cloning and Merging: source: ${params.SOURCE_BRANCH} -> target:${params.TARGET_BRANCH}"
+                                "Cloning and Merging to ${params.TARGET_BRANCH}"
                         )
                     }
-                    cloneAndMerge(params.SOURCE_BRANCH, params.TARGET_BRANCH)
+                    clone(params.SOURCE_BRANCH, params.TARGET_BRANCH, true)
                 }
             }
         }
@@ -154,9 +154,6 @@ pipeline {
                                             sed -i '' "s|^serverBaseUrlIos=.*|serverBaseUrlIos=http://${dockerMachineIp}/backend/${backendName}|" config.properties
                                             grep -q "serverBaseUrlIos=http://${dockerMachineIp}/backend/${backendName}" config.properties || {
                                                 echo "ERROR: serverBaseUrlIos not updated correctly in config.properties" >&2
-                                                echo '--- FILE CONTENT ---'
-                                                cat config.properties
-                                                echo '--------------------'
                                                 exit 1
                                             }
                                         """
@@ -177,9 +174,6 @@ pipeline {
                                 
                                             if ! grep -Fq "<key>${dockerMachineIp}</key>" ${networkSecurityFile}; then
                                                 echo "ERROR: domain entry for ${dockerMachineIp} not found in ${networkSecurityFile}" >&2
-                                                echo '--- FILE CONTENT ---'
-                                                cat ${networkSecurityFile}
-                                                echo '--------------------'
                                                 exit 1
                                             fi
                                         """

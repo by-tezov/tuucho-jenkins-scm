@@ -1,6 +1,6 @@
 def call(
         String sourceBranch,
-        String repositoryFullName = env.GITHUB_TUUCHO_REPOSITORY,
+        String repositoryFullName = "${env.GITHUB_ORGANIZATION}/${env.GITHUB_TUUCHO}",
         String repositoryOrganization = env.GITHUB_ORGANIZATION,
         String credentialsId = env.GITHUB_API_TOKEN_ID
 ) {

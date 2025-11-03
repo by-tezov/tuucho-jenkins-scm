@@ -90,7 +90,7 @@ pipeline {
                                 constant.pullRequestStatus.pending,
                                 "Cloning and Merging: source: ${params.SOURCE_BRANCH} -> target:${params.TARGET_BRANCH}"
                         )
-                        cloneAndMerge(params.SOURCE_BRANCH, params.TARGET_BRANCH)
+                        clone(params.SOURCE_BRANCH, params.TARGET_BRANCH, true)
                     }
                 }
             }

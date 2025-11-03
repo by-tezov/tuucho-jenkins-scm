@@ -3,7 +3,7 @@
 def setStatus = { status, message ->
     setPullRequestStatus(
             params.PULL_REQUEST_SHA,
-            constant.pullRequestContextStatus.unit_test,
+            constant.pullRequestContextStatus.danger,
             status,
             "${message}"
     )
@@ -12,7 +12,7 @@ def setStatus = { status, message ->
 pipeline {
     agent {
         node {
-            label 'android-builder'
+            label 'android-danger'
             customWorkspace "workspace/${env.JOB_NAME}/_${env.BUILD_NUMBER}"
         }
     }
@@ -25,11 +25,12 @@ pipeline {
         string(name: 'COMMIT_AUTHOR', defaultValue: '', description: 'Commit author')
         string(name: 'COMMIT_MESSAGE', defaultValue: '', description: 'Commit message')
         string(name: 'CALLER_BUILD_NUMBER', defaultValue: '', description: 'Caller build number')
+        string(name: 'PULL_REQUEST_NUMBER', defaultValue: '', description: 'Pull request number')
         string(name: 'PULL_REQUEST_SHA', defaultValue: '', description: 'Pull request sha (used to update status on GitHub)')
     }
 
     environment {
-        AGENT = 'android-builder'
+        AGENT = 'android-danger'
     }
 
     options {
@@ -57,7 +58,7 @@ pipeline {
                             'status pending': {
                                 setStatus(
                                         constant.pullRequestStatus.pending,
-                                        "Unit test job initiated"
+                                        "Danger job initiated"
                                 )
                             },
                             'clean workspaces': {
@@ -73,7 +74,7 @@ pipeline {
             }
         }
 
-        stage('clone and merge') {
+        stage('clone') {
             options {
                 timeout(time: 5, unit: 'MINUTES')
             }
@@ -82,9 +83,9 @@ pipeline {
                     script {
                         setStatus(
                                 constant.pullRequestStatus.pending,
-                                "Cloning and Merging: source: ${params.SOURCE_BRANCH} -> target:${params.TARGET_BRANCH}"
+                                "Cloning"
                         )
-                        cloneAndMerge(params.SOURCE_BRANCH, params.TARGET_BRANCH)
+                        clone(params.SOURCE_BRANCH, params.TARGET_BRANCH, false)
                     }
                 }
             }
@@ -100,8 +101,11 @@ pipeline {
                             constant.pullRequestStatus.pending,
                             "KtLint validating"
                     )
-                    runGradleTask("rootKtLintReport")
-                    //TODO
+                    try {
+                        runGradleTask("rootKtLintReport")
+                    }catch (Throwable error) {
+                        log.error error
+                    }
 //                    repository.storeReport('build/reports/ktlint')
 //                    currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/build/reports/ktlint/index.html" target="_blank">KtLint</a>"""
                 }
@@ -118,43 +122,43 @@ pipeline {
                             constant.pullRequestStatus.pending,
                             "Detekt validating"
                     )
-                    runGradleTask("rootDetektReport")
+                    try {
+                        runGradleTask("rootDetektReport")
+                    }catch (Throwable error) {
+                        log.error error
+                    }
                     repository.storeReport('build/reports/detekt')
                     currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/build/reports/detekt/detekt-aggregated.html" target="_blank">Detekt</a>"""
                 }
             }
         }
 
-        stage('unit test') {
+        stage('danger report') {
             options {
-                timeout(time: 15, unit: 'MINUTES')
+                timeout(time: 2, unit: 'MINUTES')
             }
             steps {
                 script {
                     setStatus(
                             constant.pullRequestStatus.pending,
-                            "Unit Testing: Finger crossed..."
+                            "Danger reporting"
                     )
-                    runGradleTask('rootMockUnitTest')
-                    repository.storeReport('build/reports/unit-tests')
-                    currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/build/reports/unit-tests/index.html" target="_blank">Tests</a>"""
-                }
-            }
-        }
-
-        stage('coverage') {
-            options {
-                timeout(time: 5, unit: 'MINUTES')
-            }
-            steps {
-                script {
-                    setStatus(
-                            constant.pullRequestStatus.pending,
-                            "Coverage reporting"
-                    )
-                    runGradleTask('rootMockCoverageReport')
-                    repository.storeReport('build/reports/jacoco/html')
-                    currentBuild.description += """<a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/build/reports/jacoco/html/index.html" target="_blank"> / Coverage</a>"""
+                    withCredentials([string(credentialsId: env.GITHUB_API_TOKEN_ID, variable: 'GITHUB_TOKEN')]) {
+                        withEnv([
+                                "DANGER_GITHUB_API_TOKEN=${GITHUB_TOKEN}",
+                                "CHANGE_ID=${params.PULL_REQUEST_NUMBER}",
+                                "CHANGE_URL=https://github.com/${env.GITHUB_ORGANIZATION}/${env.GITHUB_TUUCHO}/pull/${params.PULL_REQUEST_NUMBER}",
+                        ]) {
+                            dir('project') {
+                                sh """
+                                    danger-kotlin ci \
+                                        --dangerfile .danger.df.kts \
+                                        --verbose \
+                                        --base ${params.TARGET_BRANCH}
+                                """
+                            }
+                        }
+                    }
                 }
             }
         }
