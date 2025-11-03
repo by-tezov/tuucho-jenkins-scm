@@ -59,7 +59,7 @@ pipeline {
                             'status pending': {
                                 setStatus(
                                         constant.pullRequestStatus.pending,
-                                        "Buid job initiated"
+                                        "Build job initiated"
                                 )
                             },
                             'clean workspaces': {
@@ -84,9 +84,9 @@ pipeline {
                     script {
                         setStatus(
                                 constant.pullRequestStatus.pending,
-                                "Cloning and Merging: source: ${params.SOURCE_BRANCH} -> target:${params.TARGET_BRANCH}"
+                                "Cloning and Merging to ${params.TARGET_BRANCH}"
                         )
-                        cloneAndMerge(params.SOURCE_BRANCH, params.TARGET_BRANCH)
+                        clone(params.SOURCE_BRANCH, params.TARGET_BRANCH, true)
                     }
                 }
             }
@@ -132,9 +132,6 @@ pipeline {
                                             sed -i "s|^serverBaseUrlAndroid=.*|serverBaseUrlAndroid=http://${backendName}:3000|" config.properties
                                             grep -q "serverBaseUrlAndroid=http://${backendName}:3000" config.properties || {
                                                 echo "ERROR: serverBaseUrlAndroid not updated correctly in config.properties" >&2
-                                                echo '--- FILE CONTENT ---'
-                                                cat  config.properties
-                                                echo '--------------------'
                                                 exit 1
                                             }
                                         """
@@ -146,9 +143,6 @@ pipeline {
                                             <domain includeSubdomains="true">${backendName}</domain>' ${networkSecurityFile}
                                             if ! grep -Fq '<domain includeSubdomains="true">${backendName}</domain>' ${networkSecurityFile}; then
                                                 echo "ERROR: domain entry for ${backendName} not found in ${networkSecurityFile}" >&2
-                                                echo '--- FILE CONTENT ---'
-                                                cat ${networkSecurityFile}
-                                                echo '--------------------'
                                                 exit 1
                                             fi
                                         """

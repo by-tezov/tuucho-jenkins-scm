@@ -3,7 +3,7 @@ def call(
         String context,
         String status,
         String description,
-        String repositoryFullName = env.GITHUB_TUUCHO_REPOSITORY,
+        String repositoryFullName = "${env.GITHUB_ORGANIZATION}/${env.GITHUB_TUUCHO}",
         String credentialsId = env.GITHUB_API_TOKEN_ID
 ) {
     if (!sha) {

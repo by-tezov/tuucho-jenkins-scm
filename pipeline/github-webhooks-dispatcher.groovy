@@ -51,7 +51,7 @@ pipeline {
                             content[Key.type] = Type.push.value
                             content[Key.repositoryName] = jsonPayload.repository.name
 
-                            if (content[Key.repositoryName] == constant.repository.tuucho) {
+                            if (content[Key.repositoryName] == env.GITHUB_TUUCHO) {
                                 addPlatformBadge(constant.platform.android)
                                 addPlatformBadge(constant.platform.ios)
                             }
@@ -107,7 +107,7 @@ pipeline {
                             content[Key.type] = Type.pull.value
                             content[Key.repositoryName] = jsonPayload.repository.name
 
-                            if (content[Key.repositoryName] == constant.repository.tuucho) {
+                            if (content[Key.repositoryName] == env.GITHUB_TUUCHO) {
                                 addPlatformBadge(constant.platform.android)
                                 addPlatformBadge(constant.platform.ios)
                             }
@@ -240,7 +240,7 @@ pipeline {
                     //       label 'triggerCI'
                     matcher(content) {
                         and {
-                            exact(Key.repositoryName, constant.repository.tuucho)
+                            exact(Key.repositoryName, env.GITHUB_TUUCHO)
                             not { isTrue(Key.isSourceBranchDeleted) }
                             regex(Key.sourceBranch, /(?:epic|feat|chore|fix|release)\/.*/)
                             or {
@@ -288,6 +288,8 @@ pipeline {
                             string(name: 'SOURCE_BRANCH', value: content[Key.sourceBranch]),
                             string(name: 'TARGET_BRANCH', value: content[KeyPullRequest.targetBranch]),
                             string(name: 'BUILD_TYPE', value: option[constant.commitOption.buildType] ?: constant.buildType.mock),
+                            booleanParam(name: 'DANGER', value: option[constant.commitOption.danger] == null ? true
+                                    : option[constant.commitOption.danger].toBoolean()),
                             booleanParam(name: 'UNIT_TEST', value: option[constant.commitOption.unitTest] == null ? true
                                     : option[constant.commitOption.unitTest].toBoolean()),
                             string(name: 'LANGUAGE', value: option[constant.commitOption.language] ?: constant.language.en),

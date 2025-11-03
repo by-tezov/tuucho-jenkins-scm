@@ -1,5 +1,5 @@
 def call(
-        String repositoryFullName = env.GITHUB_TUUCHO_REPOSITORY,
+        String repositoryFullName = "${env.GITHUB_ORGANIZATION}/${env.GITHUB_TUUCHO}",
         String credentialsId = env.GITHUB_API_TOKEN_ID
 ) {
     withCredentials([string(credentialsId: credentialsId, variable: 'GITHUB_TOKEN')]) {

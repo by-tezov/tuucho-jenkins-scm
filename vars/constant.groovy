@@ -26,13 +26,9 @@ def assembleTask = [
 ]
 
 @groovy.transform.Field
-def repository = [
-        tuucho: 'tuucho'
-]
-
-@groovy.transform.Field
 def agent = [
         repository     : 'agent-repository',
+        android_danger : 'android-danger',
         android_builder: 'android-builder',
         android_qa     : 'android-qa',
         ios_builder    : 'ios-builder',
@@ -49,6 +45,7 @@ def platform = [
 def commitOption = [
         buildType                  : 'build type',
         triggerOnDraft             : 'push trigger CI when on draft',
+        danger                     : 'static-analysis',
         unitTest                   : 'unit-test',
         branchNameQA               : 'QA branch name',
         branchNameBackend          : 'Backend branch name',
@@ -63,6 +60,7 @@ def commitOption = [
 @groovy.transform.Field
 def pullRequestContextStatus = [
         pull_request                : 'CI Check',
+        danger                      : 'Danger',
         unit_test                   : 'Unit test Check',
         build_an                    : 'Android: Build',
         e2e_test_an                 : 'Android: Test End To End',

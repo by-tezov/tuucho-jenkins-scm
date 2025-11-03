@@ -1,7 +1,7 @@
 def call(
         String number,
         List<String> labels,
-        String repositoryFullName = env.GITHUB_TUUCHO_REPOSITORY,
+        String repositoryFullName = "${env.GITHUB_ORGANIZATION}/${env.GITHUB_TUUCHO}",
         String credentialsId = env.GITHUB_API_TOKEN_ID
 ) {
     if (!number) {
