@@ -91,26 +91,26 @@ pipeline {
             }
         }
 
-//        stage('ktlint validation') {
-//            options {
-//                timeout(time: 2, unit: 'MINUTES')
-//            }
-//            steps {
-//                script {
-//                    setStatus(
-//                            constant.pullRequestStatus.pending,
-//                            "KtLint validating"
-//                    )
-//                    try {
-//                        runGradleTask("rootKtLintReport")
-//                    }catch (Throwable error) {
-//                        log.error error
-//                    }
-////                    repository.storeReport('build/reports/ktlint')
-////                    currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/build/reports/ktlint/index.html" target="_blank">KtLint</a>"""
-//                }
-//            }
-//        }
+        stage('ktlint validation') {
+            options {
+                timeout(time: 2, unit: 'MINUTES')
+            }
+            steps {
+                script {
+                    setStatus(
+                            constant.pullRequestStatus.pending,
+                            "KtLint validating"
+                    )
+                    try {
+                        runGradleTask("rootKtLintReport")
+                    }catch (Throwable error) {
+                        log.error error
+                    }
+//                    repository.storeReport('build/reports/ktlint')
+//                    currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/build/reports/ktlint/index.html" target="_blank">KtLint</a>"""
+                }
+            }
+        }
 //
 //        stage('detekt validation') {
 //            options {
