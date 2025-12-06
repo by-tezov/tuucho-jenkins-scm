@@ -180,7 +180,15 @@ pipeline {
                                     }
                             )
                         }
-                    } else {
+                    }
+                    else if (params.BUILD_TYPE == constant.buildType.mock) {
+                        dir('project/sample') {
+                            withCredentials([file(credentialsId: env.TUUCHO_CONFIG_PROPERTIES, variable: 'TUUCHO_CONFIG_PROPERTIES')]) {
+                                sh "cp \"$TUUCHO_CONFIG_PROPERTIES\" config.properties"
+                            }
+                        }
+                    }
+                    else {
                         error("Build type not implemented yet: ${params.BUILD_TYPE }")
                     }
                 }
