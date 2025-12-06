@@ -107,7 +107,7 @@ pipeline {
                             string(credentialsId: env.MAVEN_SIGNING_PASSWORD, variable: 'MAVEN_SIGNING_PASSWORD')
                     ]) {
                         withEnv(["MAVEN_SIGNING_KEY=" + readFile(MAVEN_SIGNING_KEY_FILE)]) {
-                            runGradleTask("rootPublishProdToMavenLocal")
+                            runGradleTask("rootPublishReleaseToMavenLocal")
                         }
                     }
                 }

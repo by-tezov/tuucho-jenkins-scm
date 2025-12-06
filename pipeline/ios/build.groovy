@@ -105,7 +105,7 @@ pipeline {
                             "Api validating"
                     )
                     sourceEnv {
-                        runGradleTask("rootValidateProdApi")
+                        runGradleTask("rootValidateReleaseApi")
                     }
                 }
             }
@@ -127,7 +127,7 @@ pipeline {
                     ]) {
                         withEnv(["MAVEN_SIGNING_KEY=" + readFile(MAVEN_SIGNING_KEY_FILE)]) {
                             sourceEnv {
-                                runGradleTask("rootPublishProdToMavenLocal")
+                                runGradleTask("rootPublishReleaseToMavenLocal")
                             }
                         }
                     }

@@ -100,7 +100,7 @@ pipeline {
                             constant.pullRequestStatus.pending,
                             "Unit Testing: Finger crossed..."
                     )
-                    runGradleTask('rootMockUnitTest')
+                    runGradleTask('rootDebugUnitTest')
                     repository.storeReport('build/reports/unit-tests')
                     currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/build/reports/unit-tests/index.html" target="_blank">Tests</a>"""
                 }
@@ -117,7 +117,7 @@ pipeline {
                             constant.pullRequestStatus.pending,
                             "Coverage reporting"
                     )
-                    runGradleTask('rootMockCoverageReport')
+                    runGradleTask('rootDebugCoverageReport')
                     repository.storeReport('build/reports/jacoco/html')
                     currentBuild.description += """<a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/build/reports/jacoco/html/index.html" target="_blank"> / Coverage</a>"""
                 }

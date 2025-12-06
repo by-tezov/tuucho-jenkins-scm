@@ -23,7 +23,7 @@ pipeline {
         separator(name: '-Build-', sectionHeader: '-build-')
         string(name: 'SOURCE_BRANCH', defaultValue: '', description: 'Source branch to build')
         string(name: 'TARGET_BRANCH', defaultValue: '', description: 'Target branch to merge (merge is done only locally, not on remote)')
-        choice(name: 'BUILD_TYPE', choices: ['mock', 'dev'], description: 'Build type')
+        choice(name: 'BUILD_TYPE', choices: ['mock', 'dev', 'stage', 'prod'], description: 'Build type')
         booleanParam(name: 'DANGER', defaultValue: true, description: 'Launch Danger')
         booleanParam(name: 'UNIT_TEST', defaultValue: true, description: 'Launch Unit Tests')
         separator(name: '-QA-', sectionHeader: '-QA-')
