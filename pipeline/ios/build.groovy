@@ -186,6 +186,13 @@ pipeline {
                             withCredentials([file(credentialsId: env.TUUCHO_CONFIG_PROPERTIES, variable: 'TUUCHO_CONFIG_PROPERTIES')]) {
                                 sh "cp \"$TUUCHO_CONFIG_PROPERTIES\" config.properties"
                             }
+                            sh """
+                                sed -i '' "s|^serverBaseUrlIos=.*|serverBaseUrlIos=http://localhost|" config.properties
+                                grep -q "serverBaseUrlIos=http://localhost" config.properties || {
+                                    echo "ERROR: serverBaseUrlIos not updated correctly in config.properties" >&2
+                                    exit 1
+                                }
+                            """
                         }
                     }
                     else {
