@@ -141,7 +141,7 @@ pipeline {
                                 "CHANGE_ID=${params.PULL_REQUEST_NUMBER}",
                                 "CHANGE_URL=https://github.com/${env.GITHUB_ORGANIZATION}/${env.GITHUB_TUUCHO}/pull/${params.PULL_REQUEST_NUMBER}",
                         ]) {
-                            dir('project') {
+                            dir('project/tuucho') {
                                 sh """
                                     danger-kotlin ci \
                                         --dangerfile .danger.df.kts \
