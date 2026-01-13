@@ -26,7 +26,7 @@ def storeReport(
         String target
 ) {
     def key = key()
-    dir("project/${target}") {
+    dir(target) {
         stash name: key, includes: "**/*"
     }
     node('repository') {
@@ -41,7 +41,7 @@ def storeCache(
         Map input
 ) {
     if (input.containsKey('fileValidity')) {
-        def fileValidity = "project/${input.fileValidity}"
+        def fileValidity = "cache/${input.fileValidity}"
         if (!fileExists(fileValidity)) {
             log.info "file validity not found at ${fileValidity}, skipping cache store"
             return
@@ -62,7 +62,7 @@ def storeCache(
         String folder,
         String hashValidity
 ) {
-    def workspace = "project/${folder}"
+    def workspace = folder
     if (!fileExists(workspace) || sh(script: "ls -A ${workspace} | wc -l", returnStdout: true).trim() == "0") {
         log.info "${folder} does not exist or is empty, skipping cache store"
         return
@@ -100,7 +100,7 @@ def restoreCache(
         Map input
 ) {
     if (input.containsKey('fileValidity')) {
-        def fileValidity = "project/${input.fileValidity}"
+        def fileValidity = "cache/${input.fileValidity}"
         if (!fileExists(fileValidity)) {
             log.info "file validity not found at ${fileValidity}, skipping cache store"
             return false
@@ -137,7 +137,7 @@ def restoreCache(
         return false
     }
     log.info "restoring cache for ${folder}"
-    dir("project/${folder}") {
+    dir(folder) {
         deleteDir()
         unstash key
         sh """

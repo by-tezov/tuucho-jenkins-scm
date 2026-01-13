@@ -102,8 +102,8 @@ pipeline {
                             "KtLint validating"
                     )
                     runGradleTask('project/tuucho', 'rootKtLintReport')
-//                    repository.storeReport('build/reports/ktlint')
-//                    currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/build/reports/ktlint/index.html" target="_blank">KtLint</a>"""
+//                    repository.storeReport('project/tuucho/build/reports/ktlint')
+//                    currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/tuucho/build/reports/ktlint/index.html" target="_blank">KtLint</a>"""
                 }
             }
         }
@@ -119,7 +119,7 @@ pipeline {
                             "Detekt validating"
                     )
                     runGradleTask('project/tuucho', 'rootDetektReport')
-                    repository.storeReport('build/reports/detekt')
+                    repository.storeReport('project/tuucho/build/reports/detekt')
                     currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/tuucho/build/reports/detekt/detekt-aggregated.html" target="_blank">Detekt</a>"""
                 }
             }

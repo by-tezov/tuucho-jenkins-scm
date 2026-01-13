@@ -144,9 +144,9 @@ pipeline {
                             constant.pullRequestStatus.pending,
                             "Npm install"
                     )
-                    repository.restoreCache('node_modules', [fileValidity: 'package-lock.json'])
+                    repository.restoreCache('project/node_modules', [fileValidity: 'package-lock.json'])
                     runGradleTask('project', 'npm.install')
-                    repository.storeCache('node_modules', [fileValidity: 'package-lock.json'])
+                    repository.storeCache('project/node_modules', [fileValidity: 'package-lock.json'])
                 }
             }
         }
@@ -267,7 +267,7 @@ pipeline {
                                 constant.pullRequestStatus.pending,
                                 "Restore visual baseline"
                         )
-                        def isRestored = repository.restoreCache("visual-testing/baseline/${arguments.hash}", [hashValidity: arguments.hash])
+                        def isRestored = repository.restoreCache("project/visual-testing/baseline/${arguments.hash}", [hashValidity: arguments.hash])
                         if (isRestored) {
                             setVisualBaselineStatus(
                                     constant.pullRequestStatus.success,
@@ -340,7 +340,7 @@ pipeline {
             }
             steps {
                 script {
-                    repository.storeCache("visual-testing/baseline/${arguments.hash}", [hashValidity: arguments.hash])
+                    repository.storeCache("project/visual-testing/baseline/${arguments.hash}", [hashValidity: arguments.hash])
                 }
             }
         }
@@ -391,7 +391,7 @@ pipeline {
             script {
                 timeout(time: 2, unit: 'MINUTES') {
                     runGradleTask('project', 'allure.generate')
-                    repository.storeReport('allure-report')
+                    repository.storeReport('project/allure-report')
                     currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/allure-report/index.html" target="_blank">Report</a>"""
                 }
             }
