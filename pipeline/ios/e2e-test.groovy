@@ -148,7 +148,7 @@ pipeline {
                 script {
                     sourceEnv {
                         repository.restoreCache('node_modules', [fileValidity: 'package-lock.json'])
-                        runGradleTask('npm.install')
+                        runGradleTask('project', 'npm.install')
                         repository.storeCache('node_modules', [fileValidity: 'package-lock.json'])
                     }
                 }
@@ -171,7 +171,7 @@ pipeline {
                                     timeout(time: 2, unit: 'MINUTES') {
                                         appiumHasBeenStarted = true
                                         sourceEnv {
-                                            runGradleTask('appium.start')
+                                            runGradleTask('project', 'appium.start')
                                         }
                                     }
                                 }
@@ -207,7 +207,7 @@ pipeline {
                                         sourceEnv {
                                             def _arguments = [:]
                                             _arguments['deviceName'] = params.DEVICE_NAME
-                                            runGradleTask('simulator.start', _arguments)
+                                            runGradleTask('project', 'simulator.start', _arguments)
                                         }
                                     }
                                 }
@@ -265,7 +265,7 @@ pipeline {
                     _arguments['appFile'] = applicationLocation.file
                     _arguments['tags'] = params.QUICK_ESCAPE_TEST_TAGS
                     sourceEnv {
-                        runGradleTask('test', _arguments)
+                        runGradleTask('project', 'test', _arguments)
                     }
                 }
             }
@@ -289,7 +289,7 @@ pipeline {
                     _arguments['appFile'] = applicationLocation.file
                     _arguments['tags'] = params.TESTS_TAGS
                     sourceEnv {
-                        runGradleTask('test', _arguments)
+                        runGradleTask('project', 'test', _arguments)
                     }
                 }
             }
@@ -322,7 +322,7 @@ pipeline {
                                     if (appiumHasBeenStarted) {
                                         timeout(time: 2, unit: 'MINUTES') {
                                             sourceEnv {
-                                                runGradleTask('appium.stop')
+                                                runGradleTask('project', 'appium.stop')
                                             }
                                             appiumHasBeenStarted = false
                                         }
@@ -348,7 +348,7 @@ pipeline {
                                             sourceEnv {
                                                 def _arguments = [:]
                                                 _arguments['deviceName'] = params.DEVICE_NAME
-                                                runGradleTask('simulator.stop', _arguments)
+                                                runGradleTask('project', 'simulator.stop', _arguments)
                                             }
                                             deviceHasBeenStarted = false
                                         }
@@ -361,7 +361,7 @@ pipeline {
             script {
                 timeout(time: 2, unit: 'MINUTES') {
                     sourceEnv {
-                        runGradleTask('allure.generate')
+                        runGradleTask('project', 'allure.generate')
                     }
                     repository.storeReport('allure-report')
                     currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/allure-report/index.html" target="_blank">Report</a>"""

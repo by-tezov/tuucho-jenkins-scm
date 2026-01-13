@@ -105,7 +105,7 @@ pipeline {
                             "Api validating"
                     )
                     sourceEnv {
-                        runGradleTask("rootValidateReleaseApi")
+                        runGradleTask('project/tuucho', 'rootValidateReleaseApi')
                     }
                 }
             }
@@ -127,7 +127,7 @@ pipeline {
                     ]) {
                         withEnv(["MAVEN_SIGNING_KEY=" + readFile(MAVEN_SIGNING_KEY_FILE)]) {
                             sourceEnv {
-                                runGradleTask("rootPublishReleaseToMavenLocal")
+                                runGradleTask('project/tuucho', 'rootPublishReleaseToMavenLocal')
                             }
                         }
                     }
@@ -215,7 +215,7 @@ pipeline {
                 }
                 script {
                     sourceEnv {
-                        runGradleTask(':app:ios:iosBundleInstall', null, 'project/sample')
+                        runGradleTask('project/sample', ':app:ios:iosBundleInstall')
                     }
                 }
             }
@@ -237,7 +237,7 @@ pipeline {
                         sourceEnv {
                             def arguments = [:]
                             arguments['device'] = params.DEVICE_NAME
-                            runGradleTask(":app:ios:${constant.assembleTask[params.BUILD_TYPE]}", arguments, 'project/sample')
+                            runGradleTask('project/sample', ":app:ios:${constant.assembleTask[params.BUILD_TYPE]}", arguments)
                             //TODO, use agent-repository to store apk and update getApplicationPath
                         }
                     }
