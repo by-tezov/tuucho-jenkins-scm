@@ -364,7 +364,7 @@ pipeline {
                         runGradleTask('project', 'allure.generate')
                     }
                     repository.storeReport('project/allure-report')
-                    currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/allure-report/index.html" target="_blank">Report</a>"""
+                    currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/project/allure-report/index.html" target="_blank">Report</a>"""
                 }
             }
         }
