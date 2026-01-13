@@ -118,7 +118,7 @@ pipeline {
                             "Coverage reporting"
                     )
                     runGradleTask('project/tuucho', 'rootDebugCoverageReport')
-                    repository.storeReport('project/build/reports/jacoco/html')
+                    repository.storeReport('project/tuucho/build/reports/jacoco/html')
                     currentBuild.description += """<a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/tuucho/build/reports/jacoco/html/index.html" target="_blank"> / Coverage</a>"""
                 }
             }
