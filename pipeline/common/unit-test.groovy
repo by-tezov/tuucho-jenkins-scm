@@ -101,7 +101,7 @@ pipeline {
                             "Unit Testing: Finger crossed..."
                     )
                     runGradleTask('project/tuucho', 'rootDebugUnitTest')
-                    repository.storeReport('build/reports/unit-tests')
+                    repository.storeReport('project/tuucho/build/reports/unit-tests')
                     currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/tuucho/build/reports/unit-tests/index.html" target="_blank">Tests</a>"""
                 }
             }
@@ -118,7 +118,7 @@ pipeline {
                             "Coverage reporting"
                     )
                     runGradleTask('project/tuucho', 'rootDebugCoverageReport')
-                    repository.storeReport('build/reports/jacoco/html')
+                    repository.storeReport('project/build/reports/jacoco/html')
                     currentBuild.description += """<a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/tuucho/build/reports/jacoco/html/index.html" target="_blank"> / Coverage</a>"""
                 }
             }
