@@ -145,7 +145,7 @@ pipeline {
                             "Npm install"
                     )
                     repository.restoreCache('node_modules', [fileValidity: 'package-lock.json'])
-                    runGradleTask('npm.install')
+                    runGradleTask('project', 'npm.install')
                     repository.storeCache('node_modules', [fileValidity: 'package-lock.json'])
                 }
             }
@@ -304,7 +304,7 @@ pipeline {
                     _arguments['appPath'] = applicationLocation.path
                     _arguments['appFile'] = applicationLocation.file
                     _arguments['tags'] = params.QUICK_ESCAPE_TEST_TAGS
-                    runGradleTask('test', _arguments)
+                    runGradleTask('project', 'test', _arguments)
                 }
             }
         }
@@ -326,7 +326,7 @@ pipeline {
                     _arguments['appPath'] = applicationLocation.path
                     _arguments['appFile'] = applicationLocation.file
                     _arguments['tags'] = params.TESTS_TAGS
-                    runGradleTask('test', _arguments)
+                    runGradleTask('project', 'test', _arguments)
                 }
             }
         }
@@ -390,7 +390,7 @@ pipeline {
             }
             script {
                 timeout(time: 2, unit: 'MINUTES') {
-                    runGradleTask('allure.generate')
+                    runGradleTask('project', 'allure.generate')
                     repository.storeReport('allure-report')
                     currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/allure-report/index.html" target="_blank">Report</a>"""
                 }
