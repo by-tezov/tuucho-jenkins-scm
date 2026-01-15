@@ -232,7 +232,7 @@ pipeline {
                             constant.pullRequestStatus.pending,
                             "Upload lib"
                     )
-                    dir('project/.m2') {
+                    dir('project/tuucho/.m2') {
                         def fileName = getMarketingVersion()
                         sh "zip -r ${fileName}.zip ."
                         withCredentials([
