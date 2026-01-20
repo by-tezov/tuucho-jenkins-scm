@@ -60,6 +60,8 @@ def commitOption = [
 @groovy.transform.Field
 def pullRequestContextStatus = [
         pull_request                : 'CI Check',
+        danger_linux                : 'Danger-Linux',
+        danger_mac_os               : 'Danger-MacOs',
         danger                      : 'Danger',
         unit_test                   : 'Unit test Check',
         build_an                    : 'Android: Build',

@@ -113,19 +113,62 @@ pipeline {
             }
         }
 
-        stage('danger') {
+        stage('static-analysis') {
+            parallel(
+                    'linux': {
+                        stage('linux') {
+                            when {
+                                expression { params.DANGER }
+                            }
+                            steps {
+                                script {
+                                    childUnitTest = build job: 'common/danger/linux', parameters: [
+                                            string(name: 'SOURCE_BRANCH', value: params.SOURCE_BRANCH),
+                                            string(name: 'TARGET_BRANCH', value: params.TARGET_BRANCH),
+                                            string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
+                                            string(name: 'COMMIT_MESSAGE', value: params.COMMIT_MESSAGE),
+                                            string(name: 'CALLER_BUILD_NUMBER', value: env.BUILD_NUMBER),
+                                            string(name: 'PULL_REQUEST_NUMBER', value: params.PULL_REQUEST_NUMBER),
+                                            string(name: 'PULL_REQUEST_SHA', value: params.PULL_REQUEST_SHA)
+                                    ], wait: true
+                                }
+                            }
+                        }
+                    },
+                    'mac-os': {
+                        stage('mac-os') {
+                            when {
+                                expression { params.DANGER && params.E2E_TEST_IOS }
+                            }
+                            steps {
+                                script {
+                                    childUnitTest = build job: 'common/danger/mac-os', parameters: [
+                                            string(name: 'SOURCE_BRANCH', value: params.SOURCE_BRANCH),
+                                            string(name: 'TARGET_BRANCH', value: params.TARGET_BRANCH),
+                                            string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
+                                            string(name: 'COMMIT_MESSAGE', value: params.COMMIT_MESSAGE),
+                                            string(name: 'CALLER_BUILD_NUMBER', value: env.BUILD_NUMBER),
+                                            string(name: 'PULL_REQUEST_NUMBER', value: params.PULL_REQUEST_NUMBER),
+                                            string(name: 'PULL_REQUEST_SHA', value: params.PULL_REQUEST_SHA)
+                                    ], wait: true
+                                }
+                            }
+                        }
+                    })
+        }
+
+        stage('danger-report') {
             when {
                 expression { params.DANGER }
             }
             steps {
                 script {
-                    childUnitTest = build job: 'common/danger', parameters: [
+                    childUnitTest = build job: 'common/danger/report', parameters: [
                             string(name: 'SOURCE_BRANCH', value: params.SOURCE_BRANCH),
                             string(name: 'TARGET_BRANCH', value: params.TARGET_BRANCH),
                             string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
                             string(name: 'COMMIT_MESSAGE', value: params.COMMIT_MESSAGE),
                             string(name: 'CALLER_BUILD_NUMBER', value: env.BUILD_NUMBER),
-                            string(name: 'PULL_REQUEST_NUMBER', value: params.PULL_REQUEST_NUMBER),
                             string(name: 'PULL_REQUEST_SHA', value: params.PULL_REQUEST_SHA)
                     ], wait: true
                 }

@@ -94,23 +94,6 @@ pipeline {
             }
         }
 
-        stage('api validation') {
-            options {
-                timeout(time: 2, unit: 'MINUTES')
-            }
-            steps {
-                script {
-                    setStatus(
-                            constant.pullRequestStatus.pending,
-                            "Api validating"
-                    )
-                    sourceEnv {
-                        runGradleTask('project/tuucho', 'rootValidateReleaseApi')
-                    }
-                }
-            }
-        }
-
         stage('build lib') {
             options {
                 timeout(time: 10, unit: 'MINUTES')
