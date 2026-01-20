@@ -1,9 +1,11 @@
+package common.danger
+
 @Library('library@master') _
 
 def setStatus = { status, message ->
     setPullRequestStatus(
             params.PULL_REQUEST_SHA,
-            constant.pullRequestContextStatus.danger,
+            constant.pullRequestContextStatus.danger_linux,
             status,
             "${message}"
     )
@@ -12,7 +14,7 @@ def setStatus = { status, message ->
 pipeline {
     agent {
         node {
-            label 'android-danger'
+            label 'linux'
             customWorkspace "workspace/${env.JOB_NAME}/_${env.BUILD_NUMBER}"
         }
     }
@@ -30,7 +32,7 @@ pipeline {
     }
 
     environment {
-        AGENT = 'android-danger'
+        AGENT = 'linux'
     }
 
     options {
@@ -58,7 +60,7 @@ pipeline {
                             'status pending': {
                                 setStatus(
                                         constant.pullRequestStatus.pending,
-                                        "Danger job initiated"
+                                        "Danger-Linux job initiated"
                                 )
                             },
                             'clean workspaces': {
@@ -121,36 +123,6 @@ pipeline {
                     runGradleTask('project/tuucho', 'rootDetektReport')
                     repository.storeReport('project/tuucho/build/reports/detekt')
                     currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/project/tuucho/build/reports/detekt/detekt-aggregated.html" target="_blank">Detekt</a>"""
-                }
-            }
-        }
-
-        stage('danger report') {
-            options {
-                timeout(time: 2, unit: 'MINUTES')
-            }
-            steps {
-                script {
-                    setStatus(
-                            constant.pullRequestStatus.pending,
-                            "Danger reporting"
-                    )
-                    withCredentials([string(credentialsId: env.GITHUB_API_TOKEN_ID, variable: 'GITHUB_TOKEN')]) {
-                        withEnv([
-                                "DANGER_GITHUB_API_TOKEN=${GITHUB_TOKEN}",
-                                "CHANGE_ID=${params.PULL_REQUEST_NUMBER}",
-                                "CHANGE_URL=https://github.com/${env.GITHUB_ORGANIZATION}/${env.GITHUB_TUUCHO}/pull/${params.PULL_REQUEST_NUMBER}",
-                        ]) {
-                            dir('project/tuucho') {
-                                sh """
-                                    danger-kotlin ci \
-                                        --dangerfile .danger.df.kts \
-                                        --verbose \
-                                        --base ${params.TARGET_BRANCH}
-                                """
-                            }
-                        }
-                    }
                 }
             }
         }
