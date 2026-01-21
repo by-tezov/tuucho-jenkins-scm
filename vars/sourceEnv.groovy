@@ -9,7 +9,10 @@ def call(Closure body) {
             def zshrcPath = "${env.HOME}/${env.CICD_FOLDER}/qa/.zshrc"
             envVars = readZshrcEnv(zshrcPath)
             break
-
+        case 'common/danger-mac-os':
+            def zshrcPath = "${env.HOME}/${env.CICD_FOLDER}/mac-os/.zshrc"
+            envVars = readZshrcEnv(zshrcPath)
+            break
         case 'maven-central-publish':
             def zshrcPath = "${env.HOME}/${env.CICD_FOLDER}/builder/.zshrc" //TODO replace by ios-publication when done
             envVars = readZshrcEnv(zshrcPath)
