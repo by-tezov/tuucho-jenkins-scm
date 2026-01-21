@@ -47,7 +47,7 @@ pipeline {
                 timeout(time: 25, unit: 'MINUTES')
             }
             when {
-                expression { params.JENKINS_HELPER_FILES }
+                expression { params.INSTALL_MAC_OS }
             }
             steps {
                 script {
