@@ -28,7 +28,8 @@ def assembleTask = [
 @groovy.transform.Field
 def agent = [
         repository     : 'agent-repository',
-        android_danger : 'android-danger',
+        linux          : 'linux',
+        macOS          : 'mac-os',
         android_builder: 'android-builder',
         android_qa     : 'android-qa',
         ios_builder    : 'ios-builder',

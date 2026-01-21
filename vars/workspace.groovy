@@ -3,7 +3,8 @@ def path(
 ) {
     def agentPaths = [
             (constant.agent.repository)     : env.AGENT_REPOSITORY_PATH,
-            (constant.agent.android_danger) : env.AGENT_AN_DANGER_PATH,
+            (constant.agent.linux)          : env.AGENT_LINUX_PATH,
+            (constant.agent.macOS)          : env.AGENT_MAC_OS_PATH,
             (constant.agent.android_builder): env.AGENT_AN_BUILDER_PATH,
             (constant.agent.android_qa)     : env.AGENT_AN_QA_PATH,
             (constant.agent.ios_builder)    : env.AGENT_IOS_BUILDER_PATH,
