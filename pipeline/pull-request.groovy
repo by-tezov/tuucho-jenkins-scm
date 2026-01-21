@@ -121,7 +121,7 @@ pipeline {
                     }
                     steps {
                         script {
-                            build job: 'common/danger/linux', parameters: [
+                            build job: 'common/danger-linux', parameters: [
                                     string(name: 'SOURCE_BRANCH', value: params.SOURCE_BRANCH),
                                     string(name: 'TARGET_BRANCH', value: params.TARGET_BRANCH),
                                     string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
@@ -140,7 +140,7 @@ pipeline {
                     }
                     steps {
                         script {
-                            build job: 'common/danger/mac-os', parameters: [
+                            build job: 'common/danger-mac-os', parameters: [
                                     string(name: 'SOURCE_BRANCH', value: params.SOURCE_BRANCH),
                                     string(name: 'TARGET_BRANCH', value: params.TARGET_BRANCH),
                                     string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
@@ -161,7 +161,7 @@ pipeline {
             }
             steps {
                 script {
-                    childUnitTest = build job: 'common/danger/report', parameters: [
+                    childUnitTest = build job: 'common/danger', parameters: [
                             string(name: 'SOURCE_BRANCH', value: params.SOURCE_BRANCH),
                             string(name: 'TARGET_BRANCH', value: params.TARGET_BRANCH),
                             string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
