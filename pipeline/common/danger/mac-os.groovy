@@ -5,7 +5,7 @@ package common.danger
 def setStatus = { status, message ->
     setPullRequestStatus(
             params.PULL_REQUEST_SHA,
-            constant.pullRequestContextStatus.danger_macos,
+            constant.pullRequestContextStatus.danger_mac_os,
             status,
             "${message}"
     )
