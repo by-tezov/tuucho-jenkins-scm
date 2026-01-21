@@ -167,6 +167,7 @@ pipeline {
                             string(name: 'COMMIT_AUTHOR', value: params.COMMIT_AUTHOR),
                             string(name: 'COMMIT_MESSAGE', value: params.COMMIT_MESSAGE),
                             string(name: 'CALLER_BUILD_NUMBER', value: env.BUILD_NUMBER),
+                            string(name: 'PULL_REQUEST_NUMBER', value: params.PULL_REQUEST_NUMBER),
                             string(name: 'PULL_REQUEST_SHA', value: params.PULL_REQUEST_SHA)
                     ], wait: true
                 }
