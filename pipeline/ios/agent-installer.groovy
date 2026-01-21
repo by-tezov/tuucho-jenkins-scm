@@ -27,8 +27,8 @@ pipeline {
                 script {
                     sh "mkdir -p helper"
                     if (params.INSTALL_MAC_OS) {
-                        sh "cp ${env.JENKINS_HELPER_FILES}/mac-agent-builder-installer.bash helper/"
-                        stash name: 'agent-mac-os-installer', includes: 'helper/mac-agent-builder-installer.bash'
+                        sh "cp ${env.JENKINS_HELPER_FILES}/mac-agent-mac-os-installer.bash helper/"
+                        stash name: 'agent-mac-os-installer', includes: 'helper/mac-agent-mac-os-installer.bash'
                     }
                     if (params.INSTALL_BUILDER) {
                         sh "cp ${env.JENKINS_HELPER_FILES}/mac-agent-builder-installer.bash helper/"
@@ -53,7 +53,7 @@ pipeline {
                 script {
                     node('mac-os') {
                         unstash 'agent-mac-os-installer'
-                        sh "bash helper/mac-agent-builder-installer.bash"
+                        sh "bash helper/mac-agent-mac-os-installer.bash"
                     }
                 }
             }
