@@ -4,7 +4,6 @@ TODO:
 - add a trigger Tag to merge in Master
 
 //TODO later
-- improve: git identity inside docker not jenkins pipeline
 - improve: clone repository shared to avoid multiple clone for single pull-request ?
 - improve: agent installer mac with argument instead of duplicated sh file
 - code: clean build config properties rewriting
