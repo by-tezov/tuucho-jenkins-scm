@@ -76,6 +76,23 @@ pipeline {
             }
         }
 
+        stage('clone') {
+            options {
+                timeout(time: 5, unit: 'MINUTES')
+            }
+            steps {
+                dir('project') {
+                    script {
+                        setStatus(
+                                constant.pullRequestStatus.pending,
+                                "Cloning"
+                        )
+                        clone(params.SOURCE_BRANCH, params.TARGET_BRANCH, false)
+                    }
+                }
+            }
+        }
+
         stage('danger report') {
             options {
                 timeout(time: 2, unit: 'MINUTES')
