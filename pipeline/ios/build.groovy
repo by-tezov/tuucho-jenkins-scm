@@ -144,16 +144,15 @@ pipeline {
                                     'network-security': {
                                         def networkSecurityFile = 'app/ios/ios/ios/Info.plist'
                                         sh """
-                                            sed -i '' '/<key>NSExceptionDomains<\\\\/key>/,/<dict><\\\\/dict>/ {
-                                                s|<dict></dict>|<dict>\\
+                                            sed -i '' '/<key>NSExceptionDomains<\\/key>/,/<\\/dict>/ {
+                                                /<\\/dict>/ i\\
                                                     <key>${dockerMachineIp}</key>\\
                                                     <dict>\\
                                                         <key>NSIncludesSubdomains</key>\\
                                                         <true/>\\
                                                         <key>NSExceptionAllowsInsecureHTTPLoads</key>\\
                                                         <true/>\\
-                                                    </dict>\\
-                                                </dict>|
+                                                    </dict>
                                             }' ${networkSecurityFile}
                                             if ! grep -Fq "<key>${dockerMachineIp}</key>" ${networkSecurityFile}; then
                                                 echo "ERROR: domain entry for ${dockerMachineIp} not found in ${networkSecurityFile}" >&2
