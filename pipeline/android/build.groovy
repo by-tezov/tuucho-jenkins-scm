@@ -181,7 +181,7 @@ pipeline {
                             constant.pullRequestStatus.pending,
                             "Building sample app"
                     )
-                    runGradleTask('project/sample', ":app:android:${constant.assembleTask[params.BUILD_TYPE]}")
+                    runGradleTask('project/sample', ":app.android:${constant.assembleTask[params.BUILD_TYPE]}")
                     //TODO, use agent-repository to store apk and update getApplicationPath
                 }
             }

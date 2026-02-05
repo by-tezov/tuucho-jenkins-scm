@@ -220,7 +220,7 @@ pipeline {
                         sourceEnv {
                             def arguments = [:]
                             arguments['device'] = params.DEVICE_NAME
-                            runGradleTask('project/sample', ":app:ios:${constant.assembleTask[params.BUILD_TYPE]}", arguments)
+                            runGradleTask('project/sample', ":app.ios:${constant.assembleTask[params.BUILD_TYPE]}", arguments)
                             //TODO, use agent-repository to store apk and update getApplicationPath
                         }
                     }
