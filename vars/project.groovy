@@ -28,7 +28,7 @@ def applicationLocation(
             def ANDROID_BUILD_APP_FILE_PATH = "sample/app/android/build/outputs/apk/${environmentToken}"
             return [
                     path: "${path(constant.agent.android_builder, jobName, buildNumber)}/${ANDROID_BUILD_APP_FILE_PATH}",
-                    file: "android-${buildType}.apk"
+                    file: "app.android-${buildType}.apk"
             ]
             break
 
