@@ -198,7 +198,7 @@ pipeline {
                 }
                 script {
                     sourceEnv {
-                        runGradleTask('project/sample', ':app:ios:iosBundleInstall')
+                        runGradleTask('project/sample', ':app.ios:iosBundleInstall')
                     }
                 }
             }
