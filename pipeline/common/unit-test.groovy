@@ -100,6 +100,9 @@ pipeline {
                             constant.pullRequestStatus.pending,
                             "Unit Testing: Finger crossed..."
                     )
+                    withEnv(["DISABLE_KOIN_PLUGIN=true"]) { /// hack because Mokkery fail with Koin
+                        runGradleTask('project/tuucho', 'rootDebugUnitTest')
+                    }
                     runGradleTask('project/tuucho', 'rootDebugUnitTest')
                     repository.storeReport('project/tuucho/build/reports/unit-tests')
                     currentBuild.description += """<br><a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/project/tuucho/build/reports/unit-tests/index.html" target="_blank">Tests</a>"""
