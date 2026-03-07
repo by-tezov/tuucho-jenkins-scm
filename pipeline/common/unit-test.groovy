@@ -107,22 +107,22 @@ pipeline {
             }
         }
 
-        stage('coverage') {
-            options {
-                timeout(time: 5, unit: 'MINUTES')
-            }
-            steps {
-                script {
-                    setStatus(
-                            constant.pullRequestStatus.pending,
-                            "Coverage reporting"
-                    )
-                    runGradleTask('project/tuucho', 'rootDebugCoverageReport')
-                    repository.storeReport('project/tuucho/build/reports/jacoco/html')
-                    currentBuild.description += """<a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/project/tuucho/build/reports/jacoco/html/index.html" target="_blank"> / Coverage</a>"""
-                }
-            }
-        }
+//        stage('coverage') {
+//            options {
+//                timeout(time: 5, unit: 'MINUTES')
+//            }
+//            steps {
+//                script {
+//                    setStatus(
+//                            constant.pullRequestStatus.pending,
+//                            "Coverage reporting"
+//                    )
+//                    runGradleTask('project/tuucho', 'rootDebugCoverageReport')
+//                    repository.storeReport('project/tuucho/build/reports/jacoco/html')
+//                    currentBuild.description += """<a href="http://localhost/jenkins/tuucho-report/${repository.relativePath()}/project/tuucho/build/reports/jacoco/html/index.html" target="_blank"> / Coverage</a>"""
+//                }
+//            }
+//        }
     }
 
     post {
