@@ -93,6 +93,7 @@ def system = [
         AGENT_MAC_OS_PATH: '/Users/jenkins/Local/cicd/mac-os',
         AGENT_REPOSITORY_PATH: '/home/repository',
         APPIUM_API_REQUEST_TIMEOUT: '10',
+        CLEAN_WORKSPACE_MAX_SUB_WORKSPACES: '3',
         GIT_CREDENTIAL_ID: 'ssh-git-jenkins',
         GIT_TUUCHO: 'git@github.com:by-tezov/tuucho.git',
         GIT_TUUCHO_QA: 'git@github.com:by-tezov/tuucho-qa.git',
