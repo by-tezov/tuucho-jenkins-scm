@@ -1,14 +1,14 @@
 def call(
         String sourceBranch,
-        String repositoryFullName = "${env.GITHUB_ORGANIZATION}/${env.GITHUB_TUUCHO}",
-        String repositoryOrganization = env.GITHUB_ORGANIZATION,
-        String credentialsId = env.GITHUB_API_TOKEN_ID
+        String repositoryFullName = "${constant.system.GITHUB_ORGANIZATION}/${constant.system.GITHUB_TUUCHO}",
+        String repositoryOrganization = constant.system.GITHUB_ORGANIZATION,
+        String credentialsId = constant.system.GITHUB_API_TOKEN_ID
 ) {
     def response = null
     withCredentials([string(credentialsId: credentialsId, variable: 'GITHUB_TOKEN')]) {
         response = httpRequest(
                 url: "https://api.github.com/repos/${repositoryFullName}/pulls?head=${repositoryOrganization}:${sourceBranch}",
-                timeout: env.GITHUB_API_REQUEST_TIMEOUT.toInteger(),
+                timeout: constant.system.GITHUB_API_REQUEST_TIMEOUT.toInteger(),
                 httpMode: 'GET',
                 customHeaders: [
                         [name: 'User-Agent', value: 'Jenkins'],

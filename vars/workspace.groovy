@@ -2,13 +2,13 @@ def path(
         String agent = env.AGENT
 ) {
     def agentPaths = [
-            (constant.agent.repository)     : env.AGENT_REPOSITORY_PATH,
-            (constant.agent.linux)          : env.AGENT_LINUX_PATH,
-            (constant.agent.macOS)          : env.AGENT_MAC_OS_PATH,
-            (constant.agent.android_builder): env.AGENT_AN_BUILDER_PATH,
-            (constant.agent.android_qa)     : env.AGENT_AN_QA_PATH,
-            (constant.agent.ios_builder)    : env.AGENT_IOS_BUILDER_PATH,
-            (constant.agent.ios_qa)         : env.AGENT_IOS_QA_PATH,
+            (constant.agent.repository)     : constant.system.AGENT_REPOSITORY_PATH,
+            (constant.agent.linux)          : constant.system.AGENT_LINUX_PATH,
+            (constant.agent.macOS)          : constant.system.AGENT_MAC_OS_PATH,
+            (constant.agent.android_builder): constant.system.AGENT_AN_BUILDER_PATH,
+            (constant.agent.android_qa)     : constant.system.AGENT_AN_QA_PATH,
+            (constant.agent.ios_builder)    : constant.system.AGENT_IOS_BUILDER_PATH,
+            (constant.agent.ios_qa)         : constant.system.AGENT_IOS_QA_PATH,
     ]
     def agentPath = agentPaths[agent]
     if (!agentPath) {
@@ -20,7 +20,7 @@ def path(
 def clean(
         String agent = env.AGENT,
         String jobName = env.JOB_NAME,
-        Integer maxSubWorkspaces = env.CLEAN_WORKSPACE_MAX_SUB_WORKSPACES.toInteger()
+        Integer maxSubWorkspaces = constant.system.CLEAN_WORKSPACE_MAX_SUB_WORKSPACES.toInteger()
 ) {
     timeout(time: 5, unit: 'MINUTES') {
         def workspace = "${path(agent)}/${jobName}"

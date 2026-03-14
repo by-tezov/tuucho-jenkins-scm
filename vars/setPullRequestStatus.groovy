@@ -3,8 +3,8 @@ def call(
         String context,
         String status,
         String description,
-        String repositoryFullName = "${env.GITHUB_ORGANIZATION}/${env.GITHUB_TUUCHO}",
-        String credentialsId = env.GITHUB_API_TOKEN_ID
+        String repositoryFullName = "${constant.system.GITHUB_ORGANIZATION}/${constant.system.GITHUB_TUUCHO}",
+        String credentialsId = constant.system.GITHUB_API_TOKEN_ID
 ) {
     if (!sha) {
         log.warning "Skipping GitHub status update because SHA is empty"

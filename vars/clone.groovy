@@ -2,10 +2,9 @@ def call(
         String sourceBranch,
         String targetBranch,
         Boolean merge,
-        String url = env.GIT_TUUCHO,
-        String credentialsId = env.GIT_CREDENTIAL_ID
+        String url = constant.system.GIT_TUUCHO,
+        String credentialsId = constant.system.GIT_CREDENTIAL_ID
 ) {
-    // end of hack
     git branch: sourceBranch, credentialsId: credentialsId, url: url
     sh "git fetch origin ${targetBranch}:${targetBranch}"
     if (merge) {
