@@ -103,11 +103,11 @@ pipeline {
                             constant.pullRequestStatus.pending,
                             "Danger reporting"
                     )
-                    withCredentials([string(credentialsId: constant.env.GITHUB_API_TOKEN_ID, variable: 'GITHUB_TOKEN')]) {
+                    withCredentials([string(credentialsId: constant.system.GITHUB_API_TOKEN_ID, variable: 'GITHUB_TOKEN')]) {
                         withEnv([
                                 "DANGER_GITHUB_API_TOKEN=${GITHUB_TOKEN}",
                                 "CHANGE_ID=${params.PULL_REQUEST_NUMBER}",
-                                "CHANGE_URL=https://github.com/${constant.env.GITHUB_ORGANIZATION}/${constant.env.GITHUB_TUUCHO}/pull/${params.PULL_REQUEST_NUMBER}",
+                                "CHANGE_URL=https://github.com/${constant.system.GITHUB_ORGANIZATION}/${constant.system.GITHUB_TUUCHO}/pull/${params.PULL_REQUEST_NUMBER}",
                         ]) {
                             dir('project/tuucho') {
                                 sh """
