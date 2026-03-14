@@ -127,7 +127,7 @@ pipeline {
                     )
                 }
                 dir('project') {
-                    git branch: "${params.BRANCH_NAME_QA}", credentialsId: "${constant.env.GIT_CREDENTIAL_ID}", url: "${constant.env.GIT_TUUCHO_QA}"
+                    git branch: "${params.BRANCH_NAME_QA}", credentialsId: "${constant.system.GIT_CREDENTIAL_ID}", url: "${constant.system.GIT_TUUCHO_QA}"
                 }
             }
         }
