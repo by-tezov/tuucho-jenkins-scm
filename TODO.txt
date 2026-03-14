@@ -5,10 +5,8 @@ TODO:
 
 //TODO later
 - improve: clone repository shared to avoid multiple clone for single pull-request ?
-- improve: agent installer mac with argument instead of duplicated sh file
-- code: clean build config properties rewriting
+- improve: apk should go repository instead of shared module
 - code: task cache clean (or max size)
 - code: task report clean (or max size)
-- code: update description function
 - code: do the all deploy product android / ios (stage - production)
 - code: add dsym upload for ios deploy-product

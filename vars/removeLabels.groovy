@@ -1,8 +1,8 @@
 def call(
         String number,
         List<String> labels,
-        String repositoryFullName = "${env.GITHUB_ORGANIZATION}/${env.GITHUB_TUUCHO}",
-        String credentialsId = env.GITHUB_API_TOKEN_ID
+        String repositoryFullName = "${constant.system.GITHUB_ORGANIZATION}/${constant.system.GITHUB_TUUCHO}",
+        String credentialsId = constant.system.GITHUB_API_TOKEN_ID
 ) {
     if (!number) {
         echo "Skipping GitHub remove labels $labels — PR number is empty"

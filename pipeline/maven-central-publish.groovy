@@ -206,8 +206,8 @@ pipeline {
                         error("❌ SNAPSHOT version found in catalog lib — release build cannot continue")
                     }
                     withCredentials([
-                            file(credentialsId: env.MAVEN_SIGNING_KEY, variable: 'MAVEN_SIGNING_KEY_FILE'),
-                            string(credentialsId: env.MAVEN_SIGNING_PASSWORD, variable: 'MAVEN_SIGNING_PASSWORD'),
+                            file(credentialsId: constant.env.MAVEN_SIGNING_KEY, variable: 'MAVEN_SIGNING_KEY_FILE'),
+                            string(credentialsId: constant.env.MAVEN_SIGNING_PASSWORD, variable: 'MAVEN_SIGNING_PASSWORD'),
                     ]) {
                         withEnv(["MAVEN_SIGNING_KEY=" + readFile(MAVEN_SIGNING_KEY_FILE)]) {
                             sourceEnv {
@@ -236,7 +236,7 @@ pipeline {
                         def fileName = getMarketingVersion()
                         sh "zip -r ${fileName}.zip ."
                         withCredentials([
-                                string(credentialsId: env.MAVEN_AUTHORIZATION_TOKEN, variable: 'MAVEN_AUTHORIZATION_TOKEN'),
+                                string(credentialsId: constant.env.MAVEN_AUTHORIZATION_TOKEN, variable: 'MAVEN_AUTHORIZATION_TOKEN'),
                         ]) {
                             def response = httpRequest(
                                     httpMode: 'POST',
@@ -272,7 +272,7 @@ pipeline {
                             "Release publication"
                     )
                     withCredentials([
-                            string(credentialsId: env.MAVEN_AUTHORIZATION_TOKEN, variable: 'MAVEN_AUTHORIZATION_TOKEN'),
+                            string(credentialsId: constant.env.MAVEN_AUTHORIZATION_TOKEN, variable: 'MAVEN_AUTHORIZATION_TOKEN'),
                     ]) {
                         while (true) {
                             def resp = httpRequest(
@@ -321,7 +321,7 @@ pipeline {
                             "Release publication"
                     )
                     withCredentials([
-                            string(credentialsId: env.MAVEN_AUTHORIZATION_TOKEN, variable: 'MAVEN_AUTHORIZATION_TOKEN'),
+                            string(credentialsId: constant.env.MAVEN_AUTHORIZATION_TOKEN, variable: 'MAVEN_AUTHORIZATION_TOKEN'),
                     ]) {
                         while (true) {
                             def resp = httpRequest(

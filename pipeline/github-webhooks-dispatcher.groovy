@@ -51,7 +51,7 @@ pipeline {
                             content[Key.type] = Type.push.value
                             content[Key.repositoryName] = jsonPayload.repository.name
 
-                            if (content[Key.repositoryName] == env.GITHUB_TUUCHO) {
+                            if (content[Key.repositoryName] == constant.env.GITHUB_TUUCHO) {
                                 addPlatformBadge(constant.platform.android)
                                 addPlatformBadge(constant.platform.ios)
                             }
@@ -107,7 +107,7 @@ pipeline {
                             content[Key.type] = Type.pull.value
                             content[Key.repositoryName] = jsonPayload.repository.name
 
-                            if (content[Key.repositoryName] == env.GITHUB_TUUCHO) {
+                            if (content[Key.repositoryName] == constant.env.GITHUB_TUUCHO) {
                                 addPlatformBadge(constant.platform.android)
                                 addPlatformBadge(constant.platform.ios)
                             }
@@ -240,7 +240,7 @@ pipeline {
                     //       label 'triggerCI'
                     matcher(content) {
                         and {
-                            exact(Key.repositoryName, env.GITHUB_TUUCHO)
+                            exact(Key.repositoryName, constant.env.GITHUB_TUUCHO)
                             not { isTrue(Key.isSourceBranchDeleted) }
                             regex(Key.sourceBranch, /(?:epic|feat|chore|fix|release)\/.*/)
                             or {

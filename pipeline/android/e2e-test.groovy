@@ -53,8 +53,6 @@ pipeline {
 
     environment {
         AGENT = 'android-qa'
-        DEVICE_START_TIMEOUT_IN_SECONDS = '240'
-        DEVICE_SHUTDOWN_TIMEOUT_IN_SECONDS = '120'
         PLATFORM = 'android'
         ADB_PORT = '5000'
     }
@@ -129,7 +127,7 @@ pipeline {
                     )
                 }
                 dir('project') {
-                    git branch: "${params.BRANCH_NAME_QA}", credentialsId: "${env.GIT_CREDENTIAL_ID}", url: "${env.GIT_TUUCHO_QA}"
+                    git branch: "${params.BRANCH_NAME_QA}", credentialsId: "${constant.env.GIT_CREDENTIAL_ID}", url: "${constant.env.GIT_TUUCHO_QA}"
                 }
             }
         }
@@ -243,7 +241,7 @@ pipeline {
                     def requestString = writeJSON returnText: true, json: request
                     httpRequest(
                             url: "http://${env.PLATFORM}-appium:4723/adb/connect",
-                            timeout: env.APPIUM_API_REQUEST_TIMEOUT.toInteger(),
+                            timeout: constant.env.APPIUM_API_REQUEST_TIMEOUT.toInteger(),
                             httpMode: 'POST',
                             customHeaders: [
                                     [name: 'Accept', value: "application/json; charset=utf-8"],

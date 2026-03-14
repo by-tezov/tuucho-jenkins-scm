@@ -54,8 +54,6 @@ pipeline {
 
     environment {
         AGENT = 'ios-qa'
-        DEVICE_START_TIMEOUT_IN_SECONDS = '240'
-        DEVICE_SHUTDOWN_TIMEOUT_IN_SECONDS = '120'
         PLATFORM = 'ios'
     }
 
@@ -129,7 +127,7 @@ pipeline {
                     )
                 }
                 dir('project') {
-                    git branch: "${params.BRANCH_NAME_QA}", credentialsId: "${env.GIT_CREDENTIAL_ID}", url: "${env.GIT_TUUCHO_QA}"
+                    git branch: "${params.BRANCH_NAME_QA}", credentialsId: "${constant.env.GIT_CREDENTIAL_ID}", url: "${constant.env.GIT_TUUCHO_QA}"
                 }
             }
         }

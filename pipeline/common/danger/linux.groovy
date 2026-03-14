@@ -47,7 +47,7 @@ pipeline {
                     parallel(
                             'update description': {
                                 log.success "sourceBranch: ${params.SOURCE_BRANCH}, targetBranch: ${params.TARGET_BRANCH}"
-                                currentBuild.displayName = "#${env.BUILD_NUMBER}-#${CALLER_BUILD_NUMBER}"
+                                currentBuild.displayName = "#${env.BUILD_NUMBER}-#${params.CALLER_BUILD_NUMBER}"
                                 if (params.COMMIT_AUTHOR != '' && params.COMMIT_MESSAGE != '') {
                                     log.info "author: ${params.COMMIT_AUTHOR}, message: ${params.COMMIT_MESSAGE}"
                                     currentBuild.description = "${params.COMMIT_AUTHOR}<br>"

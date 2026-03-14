@@ -47,7 +47,7 @@ pipeline {
                     parallel(
                             'update description': {
                                 log.success "sourceBranch: ${params.SOURCE_BRANCH}, targetBranch: ${params.TARGET_BRANCH}"
-                                currentBuild.displayName = "#${env.BUILD_NUMBER}-#${CALLER_BUILD_NUMBER}"
+                                currentBuild.displayName = "#${env.BUILD_NUMBER}-#${params.CALLER_BUILD_NUMBER}"
                                 if (params.COMMIT_AUTHOR != '' && params.COMMIT_MESSAGE != '') {
                                     log.info "author: ${params.COMMIT_AUTHOR}, message: ${params.COMMIT_MESSAGE}"
                                     currentBuild.description = "${params.COMMIT_AUTHOR}<br>"
@@ -103,11 +103,11 @@ pipeline {
                             constant.pullRequestStatus.pending,
                             "Danger reporting"
                     )
-                    withCredentials([string(credentialsId: env.GITHUB_API_TOKEN_ID, variable: 'GITHUB_TOKEN')]) {
+                    withCredentials([string(credentialsId: constant.env.GITHUB_API_TOKEN_ID, variable: 'GITHUB_TOKEN')]) {
                         withEnv([
                                 "DANGER_GITHUB_API_TOKEN=${GITHUB_TOKEN}",
                                 "CHANGE_ID=${params.PULL_REQUEST_NUMBER}",
-                                "CHANGE_URL=https://github.com/${env.GITHUB_ORGANIZATION}/${env.GITHUB_TUUCHO}/pull/${params.PULL_REQUEST_NUMBER}",
+                                "CHANGE_URL=https://github.com/${constant.env.GITHUB_ORGANIZATION}/${constant.env.GITHUB_TUUCHO}/pull/${params.PULL_REQUEST_NUMBER}",
                         ]) {
                             dir('project/tuucho') {
                                 sh """

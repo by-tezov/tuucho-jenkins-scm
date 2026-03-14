@@ -82,3 +82,28 @@ def pullRequestStatus = [
         failure: 'failure',
         success: 'success'
 ]
+
+@groovy.transform.Field
+def system = [
+        AGENT_AN_BUILDER_PATH: '/home/android',
+        AGENT_AN_QA_PATH: '/home/android-qa',
+        AGENT_IOS_BUILDER_PATH: '/Users/jenkins/Local/cicd/builder',
+        AGENT_IOS_QA_PATH: '/Users/jenkins/Local/cicd/qa',
+        AGENT_LINUX_PATH: '/home/linux',
+        AGENT_MAC_OS_PATH: '/Users/jenkins/Local/cicd/mac-os',
+        AGENT_REPOSITORY_PATH: '/home/repository',
+        APPIUM_API_REQUEST_TIMEOUT: '10',
+        GIT_CREDENTIAL_ID: 'ssh-git-jenkins',
+        GIT_TUUCHO: 'git@github.com:by-tezov/tuucho.git',
+        GIT_TUUCHO_QA: 'git@github.com:by-tezov/tuucho-qa.git',
+        GITHUB_API_REQUEST_TIMEOUT: '20',
+        GITHUB_API_TOKEN_ID: 'github-api-token',
+        GITHUB_ORGANIZATION: 'by-tezov',
+        GITHUB_TUUCHO: 'tuucho',
+        IS_CI: 'true',
+        MAVEN_AUTHORIZATION_TOKEN: 'maven-authorization-token',
+        MAVEN_PASSWORD: 'maven-user-password',
+        MAVEN_SIGNING_KEY: 'maven-signing-key',
+        MAVEN_SIGNING_PASSWORD: 'maven-signing-password',
+        TUUCHO_CONFIG_PROPERTIES: 'tuucho-config-properties'
+]

@@ -105,8 +105,8 @@ pipeline {
                             "Building lib"
                     )
                     withCredentials([
-                            file(credentialsId: env.MAVEN_SIGNING_KEY, variable: 'MAVEN_SIGNING_KEY_FILE'),
-                            string(credentialsId: env.MAVEN_SIGNING_PASSWORD, variable: 'MAVEN_SIGNING_PASSWORD')
+                            file(credentialsId: constant.env.MAVEN_SIGNING_KEY, variable: 'MAVEN_SIGNING_KEY_FILE'),
+                            string(credentialsId: constant.env.MAVEN_SIGNING_PASSWORD, variable: 'MAVEN_SIGNING_PASSWORD')
                     ]) {
                         withEnv(["MAVEN_SIGNING_KEY=" + readFile(MAVEN_SIGNING_KEY_FILE)]) {
                             sourceEnv {
@@ -130,7 +130,7 @@ pipeline {
                             def backendName = getBackendContainerName(constant.platform.ios)
                             parallel(
                                     'config.properties': {
-                                        withCredentials([file(credentialsId: env.TUUCHO_CONFIG_PROPERTIES, variable: 'TUUCHO_CONFIG_PROPERTIES')]) {
+                                        withCredentials([file(credentialsId: constant.env.TUUCHO_CONFIG_PROPERTIES, variable: 'TUUCHO_CONFIG_PROPERTIES')]) {
                                             sh "cp \"$TUUCHO_CONFIG_PROPERTIES\" config.properties"
                                         }
                                         sh """
@@ -165,7 +165,7 @@ pipeline {
                     }
                     else if (params.BUILD_TYPE == constant.buildType.mock) {
                         dir('project/sample') {
-                            withCredentials([file(credentialsId: env.TUUCHO_CONFIG_PROPERTIES, variable: 'TUUCHO_CONFIG_PROPERTIES')]) {
+                            withCredentials([file(credentialsId: constant.env.TUUCHO_CONFIG_PROPERTIES, variable: 'TUUCHO_CONFIG_PROPERTIES')]) {
                                 sh "cp \"$TUUCHO_CONFIG_PROPERTIES\" config.properties"
                             }
                             sh """
